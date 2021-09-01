@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,8 @@
 package org.springframework.http.codec.json;
 
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
@@ -33,6 +35,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.ResolvableType;
 import org.springframework.core.codec.AbstractDecoderTestCase;
 import org.springframework.core.codec.CodecException;
@@ -42,13 +45,21 @@ import org.springframework.http.MediaType;
 import org.springframework.http.codec.Pojo;
 import org.springframework.util.MimeType;
 
-import static java.util.Arrays.*;
-import static java.util.Collections.*;
-import static org.junit.Assert.*;
-import static org.springframework.core.ResolvableType.*;
-import static org.springframework.http.MediaType.*;
-import static org.springframework.http.codec.json.Jackson2JsonDecoder.*;
-import static org.springframework.http.codec.json.JacksonViewBean.*;
+import static java.util.Arrays.asList;
+import static java.util.Collections.emptyMap;
+import static java.util.Collections.singletonMap;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.springframework.core.ResolvableType.forClass;
+import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.http.MediaType.APPLICATION_JSON_UTF8;
+import static org.springframework.http.MediaType.APPLICATION_STREAM_JSON;
+import static org.springframework.http.MediaType.APPLICATION_XML;
+import static org.springframework.http.codec.json.Jackson2JsonDecoder.JSON_VIEW_HINT;
+import static org.springframework.http.codec.json.JacksonViewBean.MyJacksonView1;
+import static org.springframework.http.codec.json.JacksonViewBean.MyJacksonView3;
 
 /**
  * Unit tests for {@link Jackson2JsonDecoder}.
@@ -78,6 +89,13 @@ public class Jackson2JsonDecoderTests extends AbstractDecoderTestCase<Jackson2Js
 
 		assertFalse(decoder.canDecode(forClass(String.class), null));
 		assertFalse(decoder.canDecode(forClass(Pojo.class), APPLICATION_XML));
+		assertTrue(this.decoder.canDecode(forClass(Pojo.class),
+				new MediaType("application", "json", StandardCharsets.UTF_8)));
+		assertTrue(this.decoder.canDecode(forClass(Pojo.class),
+				new MediaType("application", "json", StandardCharsets.US_ASCII)));
+		assertTrue(this.decoder.canDecode(forClass(Pojo.class),
+				new MediaType("application", "json", StandardCharsets.ISO_8859_1)));
+
 	}
 
 	@Test  // SPR-15866
@@ -199,9 +217,88 @@ public class Jackson2JsonDecoderTests extends AbstractDecoderTestCase<Jackson2Js
 		);
 	}
 
+	@Test
+	public void bigDecimalFlux() {
+		Flux<DataBuffer> input = stringBuffer("[ 1E+2 ]").flux();
+
+		testDecode(input, BigDecimal.class, step -> step
+				.expectNext(new BigDecimal("1E+2"))
+				.verifyComplete()
+		);
+	}
+
+	@Test
+	public void decodeNonUtf8Encoding() {
+		Mono<DataBuffer> input = stringBuffer("{\"foo\":\"bar\"}", StandardCharsets.UTF_16);
+
+		testDecode(input, ResolvableType.forType(new ParameterizedTypeReference<Map<String, String>>() {}),
+				step -> step.assertNext(o -> {
+					Map<String, String> map = (Map<String, String>) o;
+					assertEquals("bar", map.get("foo"));
+				})
+				.verifyComplete(),
+				MediaType.parseMediaType("application/json; charset=utf-16"),
+				null);
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	public void decodeNonUnicode() {
+		Flux<DataBuffer> input = Flux.concat(
+				stringBuffer("{\"føø\":\"bår\"}", StandardCharsets.ISO_8859_1)
+		);
+
+		testDecode(input, ResolvableType.forType(new ParameterizedTypeReference<Map<String, String>>() {}),
+				step -> step.assertNext(o -> {
+					assertTrue(o instanceof Map);
+					Map<String, String> map = (Map<String, String>) o;
+					assertEquals(1, map.size());
+					assertEquals("bår", map.get("føø"));
+				})
+						.verifyComplete(),
+				MediaType.parseMediaType("application/json; charset=iso-8859-1"),
+				null);
+	}
+
+	@Test
+	public void decodeMonoNonUtf8Encoding() {
+		Mono<DataBuffer> input = stringBuffer("{\"foo\":\"bar\"}", StandardCharsets.UTF_16);
+
+		testDecodeToMono(input, ResolvableType.forType(new ParameterizedTypeReference<Map<String, String>>() {}),
+				step -> step.assertNext(o -> {
+					Map<String, String> map = (Map<String, String>) o;
+					assertEquals("bar", map.get("foo"));
+				})
+				.verifyComplete(),
+				MediaType.parseMediaType("application/json; charset=utf-16"),
+				null);
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	public void decodeAscii() {
+		Flux<DataBuffer> input = Flux.concat(
+				stringBuffer("{\"foo\":\"bar\"}", StandardCharsets.US_ASCII)
+		);
+
+		testDecode(input, ResolvableType.forType(new ParameterizedTypeReference<Map<String, String>>() {}),
+				step -> step.assertNext(o -> {
+					Map<String, String> map = (Map<String, String>) o;
+					assertEquals("bar", map.get("foo"));
+				})
+				.verifyComplete(),
+				MediaType.parseMediaType("application/json; charset=us-ascii"),
+				null);
+	}
+
+
 	private Mono<DataBuffer> stringBuffer(String value) {
+		return stringBuffer(value, StandardCharsets.UTF_8);
+	}
+
+	private Mono<DataBuffer> stringBuffer(String value, Charset charset) {
 		return Mono.defer(() -> {
-			byte[] bytes = value.getBytes(StandardCharsets.UTF_8);
+			byte[] bytes = value.getBytes(charset);
 			DataBuffer buffer = this.bufferFactory.allocateBuffer(bytes.length);
 			buffer.write(bytes);
 			return Mono.just(buffer);

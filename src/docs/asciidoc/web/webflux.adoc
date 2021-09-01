@@ -776,7 +776,8 @@ To configure buffer sizes, you can check if a given `Decoder` or `HttpMessageRea
 exposes a `maxInMemorySize` property and if so the Javadoc will have details about default
 values. In WebFlux, the `ServerCodecConfigurer` provides a
 <<webflux-config-message-codecs,single place>> from where to set all codecs, through the
-`maxInMemorySize` property for default codecs.
+`maxInMemorySize` property for default codecs. On the client side, the limit can be changed
+in <<web-reactive.adoc#webflux-client-builder-maxinmemorysize, WebClient.Builder>>.
 
 For <<webflux-codecs-multipart,Multipart parsing>> the `maxInMemorySize` property limits
 the size of non-file parts. For file parts it determines the threshold at which the part
@@ -882,15 +883,39 @@ The following example shows how to do so for client-side requests:
 [subs="verbatim,quotes"]
 ----
 Consumer<ClientCodecConfigurer> consumer = configurer ->
-		configurer.defaultCodecs().enableLoggingRequestDetails(true);
+        configurer.defaultCodecs().enableLoggingRequestDetails(true);
 
 WebClient webClient = WebClient.builder()
-		.exchangeStrategies(ExchangeStrategies.builder().codecs(consumer).build())
-		.build();
+        .exchangeStrategies(strategies -> strategies.codecs(consumer))
+        .build();
 ----
 ====
 
+[[webflux-codecs-custom]]
+==== Custom codecs
 
+Applications can register custom codecs for supporting additional media types,
+or specific behaviors that are not supported by the default codecs.
+
+Some configuration options expressed by developers are enforced on default codecs.
+Custom codecs might want to get a chance to align with those preferences,
+like <<webflux-codecs-limits, enforcing buffering limits>>
+or <<webflux-logging-sensitive-data, logging sensitive data>>.
+
+The following example shows how to do so for client-side requests:
+
+====
+[source,java,indent=0]
+[subs="verbatim,quotes"]
+----
+	WebClient webClient = WebClient.builder()
+			.codecs(configurer -> {
+					CustomDecoder decoder = new CustomDecoder();
+                    configurer.customCodecs().registerWithDefaultConfig(decoder);
+			})
+			.build();
+----
+====
 
 
 [[webflux-dispatcher-handler]]
@@ -1632,9 +1657,8 @@ and others) and is equivalent to `required=false`.
   See "`Any other argument`" later in this table.
 
 | `Errors`, `BindingResult`
-| For access to errors from validation and data binding for a command object
-  (that is, a `@ModelAttribute` argument) or errors from the validation of a `@RequestBody` or
-  `@RequestPart` argument. An `Errors`, or `BindingResult` argument must be declared
+| For access to errors from validation and data binding for a command object, i.e. a
+  `@ModelAttribute` argument. An `Errors`, or `BindingResult` argument must be declared
   immediately after the validated method argument.
 
 | `SessionStatus` + class-level `@SessionAttributes`
@@ -2289,24 +2313,19 @@ you can declare a concrete target `Object`, instead of `Part`, as the following 
 <1> Using `@RequestPart` to get the metadata.
 ====
 
-You can use `@RequestPart` combination with `javax.validation.Valid` or Spring's
-`@Validated` annotation, which causes Standard Bean Validation to be applied.
-By default, validation errors cause a `WebExchangeBindException`, which is turned
-into a 400 (`BAD_REQUEST`) response. Alternatively, you can handle validation errors locally
-within the controller through an `Errors` or `BindingResult` argument, as the following example shows:
+You can use `@RequestPart` in combination with `javax.validation.Valid` or Spring's
+`@Validated` annotation, which causes Standard Bean Validation to be applied. Validation
+errors lead to a `WebExchangeBindException` that results in a 400 (BAD_REQUEST) response.
+The exception contains a `BindingResult` with the error details and can also be handled
+in the controller method by declaring the argument with an async wrapper and then using
+error related operators:
 
 ====
 [source,java,indent=0]
 [subs="verbatim,quotes"]
 ----
-@PostMapping("/")
-public String handle(@Valid @RequestPart("meta-data") MetaData metadata, <1>
-		BindingResult result) { <2>
-	// ...
-}
-----
-<1> Using a `@Valid` annotation.
-<2> Using a `BindingResult` argument.
+	public String handle(@Valid @RequestPart("meta-data") Mono<MetaData> metadata) {
+		// use one of the onError* operators...
 ====
 
 To access all multipart data as a `MultiValueMap`, you can use `@RequestBody`,
@@ -2378,20 +2397,18 @@ You can use the <<webflux-config-message-codecs>> option of the <<webflux-config
 configure or customize message readers.
 
 You can use `@RequestBody` in combination with `javax.validation.Valid` or Spring's
-`@Validated` annotation, which causes Standard Bean Validation to be applied.
-By default, validation errors cause a `WebExchangeBindException`, which is turned
-into a 400 (`BAD_REQUEST`) response. Alternatively, you can handle validation errors locally
-within the controller through an `Errors` or a `BindingResult` argument. The following
-example uses a `BindingResult` argument`:
+`@Validated` annotation, which causes Standard Bean Validation to be applied. Validation
+errors cause a `WebExchangeBindException`, which results in a 400 (BAD_REQUEST) response.
+The exception contains a `BindingResult` with error details and can be handled in the
+controller method by declaring the argument with an async wrapper and then using error
+related operators:
 
 ====
 [source,java,indent=0]
 [subs="verbatim,quotes"]
 ----
-	@PostMapping("/accounts")
-	public void handle(@Valid @RequestBody Account account, BindingResult result) {
-		// ...
-	}
+	public void handle(@Valid @RequestBody Mono<Account> account) {
+		// use one of the onError* operators...
 ----
 ====
 
@@ -3085,7 +3102,7 @@ use `FormatterRegistrar` implementations.
 By default, if <<core.adoc#validation-beanvalidation-overview, Bean Validation>> is present
 on the classpath (for example, the Hibernate Validator), the `LocalValidatorFactoryBean`
 is registered as a global <<core.adoc#validator,validator>> for use with `@Valid` and
-`Validated` on `@Controller` method arguments.
+`@Validated` on `@Controller` method arguments.
 
 In your Java configuration, you can customize the global `Validator` instance,
 as the following example shows:

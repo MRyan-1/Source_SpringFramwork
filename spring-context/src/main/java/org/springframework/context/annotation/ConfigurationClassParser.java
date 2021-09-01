@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ package org.springframework.context.annotation;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.annotation.Annotation;
+import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -451,7 +452,7 @@ class ConfigurationClassParser {
 				Resource resource = this.resourceLoader.getResource(resolvedLocation);
 				addPropertySource(factory.createPropertySource(name, new EncodedResource(resource, encoding)));
 			}
-			catch (IllegalArgumentException | FileNotFoundException | UnknownHostException ex) {
+			catch (IllegalArgumentException | FileNotFoundException | UnknownHostException | SocketException ex) {
 				// Placeholders not resolvable or resource not found when trying to open it
 				if (ignoreResourceNotFound) {
 					if (logger.isInfoEnabled()) {
@@ -653,7 +654,7 @@ class ConfigurationClassParser {
 	}
 
 	/**
-	 * Factory method to obtain {@link SourceClass SourceClasss} from class names.
+	 * Factory method to obtain a {@link SourceClass} collection from class names.
 	 */
 	private Collection<SourceClass> asSourceClasses(String... classNames) throws IOException {
 		List<SourceClass> annotatedClasses = new ArrayList<>(classNames.length);
@@ -748,8 +749,7 @@ class ConfigurationClassParser {
 		 * @param importSelector the selector to handle
 		 */
 		public void handle(ConfigurationClass configClass, DeferredImportSelector importSelector) {
-			DeferredImportSelectorHolder holder = new DeferredImportSelectorHolder(
-					configClass, importSelector);
+			DeferredImportSelectorHolder holder = new DeferredImportSelectorHolder(configClass, importSelector);
 			if (this.deferredImportSelectors == null) {
 				DeferredImportSelectorGroupingHandler handler = new DeferredImportSelectorGroupingHandler();
 				handler.register(holder);
@@ -775,7 +775,6 @@ class ConfigurationClassParser {
 				this.deferredImportSelectors = new ArrayList<>();
 			}
 		}
-
 	}
 
 
@@ -786,8 +785,7 @@ class ConfigurationClassParser {
 		private final Map<AnnotationMetadata, ConfigurationClass> configurationClasses = new HashMap<>();
 
 		public void register(DeferredImportSelectorHolder deferredImport) {
-			Class<? extends Group> group = deferredImport.getImportSelector()
-					.getImportGroup();
+			Class<? extends Group> group = deferredImport.getImportSelector().getImportGroup();
 			DeferredImportSelectorGrouping grouping = this.groupings.computeIfAbsent(
 					(group != null ? group : deferredImport),
 					key -> new DeferredImportSelectorGrouping(createGroup(group)));
@@ -799,8 +797,7 @@ class ConfigurationClassParser {
 		public void processGroupImports() {
 			for (DeferredImportSelectorGrouping grouping : this.groupings.values()) {
 				grouping.getImports().forEach(entry -> {
-					ConfigurationClass configurationClass = this.configurationClasses.get(
-							entry.getMetadata());
+					ConfigurationClass configurationClass = this.configurationClasses.get(entry.getMetadata());
 					try {
 						processImports(configurationClass, asSourceClass(configurationClass),
 								asSourceClasses(entry.getImportClassName()), false);
@@ -818,8 +815,7 @@ class ConfigurationClassParser {
 		}
 
 		private Group createGroup(@Nullable Class<? extends Group> type) {
-			Class<? extends Group> effectiveType = (type != null ? type
-					: DefaultDeferredImportSelectorGroup.class);
+			Class<? extends Group> effectiveType = (type != null ? type : DefaultDeferredImportSelectorGroup.class);
 			Group group = BeanUtils.instantiateClass(effectiveType);
 			ParserStrategyUtils.invokeAwareMethods(group,
 					ConfigurationClassParser.this.environment,
@@ -827,7 +823,6 @@ class ConfigurationClassParser {
 					ConfigurationClassParser.this.registry);
 			return group;
 		}
-
 	}
 
 

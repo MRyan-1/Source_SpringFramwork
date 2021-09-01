@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,7 +21,6 @@ import java.lang.reflect.Type;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -72,13 +71,10 @@ import org.springframework.web.util.UriTemplateHandler;
  * addition to the generalized {@code exchange} and {@code execute} methods that
  * support of less frequent cases.
  *
- * <p><strong>NOTE:</strong> As of 5.0, the non-blocking, reactive
- * {@code org.springframework.web.reactive.client.WebClient} offers a
- * modern alternative to the {@code RestTemplate} with efficient support for
- * both sync and async, as well as streaming scenarios. The {@code RestTemplate}
- * will be deprecated in a future version and will not have major new features
- * added going forward. See the WebClient section of the Spring Framework reference
- * documentation for more details and example code.
+ * <p><strong>NOTE:</strong> As of 5.0 this class is in maintenance mode, with
+ * only minor requests for changes and bugs to be accepted going forward. Please,
+ * consider using the {@code org.springframework.web.reactive.client.WebClient}
+ * which has a more modern API and supports sync, async, and streaming scenarios.
  *
  * @author Arjen Poutsma
  * @author Brian Clozel
@@ -92,7 +88,7 @@ import org.springframework.web.util.UriTemplateHandler;
  */
 public class RestTemplate extends InterceptingHttpAccessor implements RestOperations {
 
-	private static boolean romePresent;
+	private static final boolean romePresent;
 
 	private static final boolean jaxb2Present;
 
@@ -112,9 +108,8 @@ public class RestTemplate extends InterceptingHttpAccessor implements RestOperat
 		ClassLoader classLoader = RestTemplate.class.getClassLoader();
 		romePresent = ClassUtils.isPresent("com.rometools.rome.feed.WireFeed", classLoader);
 		jaxb2Present = ClassUtils.isPresent("javax.xml.bind.Binder", classLoader);
-		jackson2Present =
-				ClassUtils.isPresent("com.fasterxml.jackson.databind.ObjectMapper", classLoader) &&
-						ClassUtils.isPresent("com.fasterxml.jackson.core.JsonGenerator", classLoader);
+		jackson2Present = ClassUtils.isPresent("com.fasterxml.jackson.databind.ObjectMapper", classLoader) &&
+				ClassUtils.isPresent("com.fasterxml.jackson.core.JsonGenerator", classLoader);
 		jackson2XmlPresent = ClassUtils.isPresent("com.fasterxml.jackson.dataformat.xml.XmlMapper", classLoader);
 		jackson2SmilePresent = ClassUtils.isPresent("com.fasterxml.jackson.dataformat.smile.SmileFactory", classLoader);
 		jackson2CborPresent = ClassUtils.isPresent("com.fasterxml.jackson.dataformat.cbor.CBORFactory", classLoader);
@@ -202,6 +197,7 @@ public class RestTemplate extends InterceptingHttpAccessor implements RestOperat
 		this.messageConverters.addAll(messageConverters);
 		this.uriTemplateHandler = initUriTemplateHandler();
 	}
+
 
 	private static DefaultUriBuilderFactory initUriTemplateHandler() {
 		DefaultUriBuilderFactory uriFactory = new DefaultUriBuilderFactory();
@@ -914,7 +910,7 @@ public class RestTemplate extends InterceptingHttpAccessor implements RestOperat
 				HttpHeaders httpHeaders = httpRequest.getHeaders();
 				HttpHeaders requestHeaders = this.requestEntity.getHeaders();
 				if (!requestHeaders.isEmpty()) {
-					requestHeaders.forEach((key, values) -> httpHeaders.put(key, new LinkedList<>(values)));
+					requestHeaders.forEach((key, values) -> httpHeaders.put(key, new ArrayList<>(values)));
 				}
 				if (httpHeaders.getContentLength() < 0) {
 					httpHeaders.setContentLength(0L);
@@ -933,7 +929,7 @@ public class RestTemplate extends InterceptingHttpAccessor implements RestOperat
 								(GenericHttpMessageConverter<Object>) messageConverter;
 						if (genericConverter.canWrite(requestBodyType, requestBodyClass, requestContentType)) {
 							if (!requestHeaders.isEmpty()) {
-								requestHeaders.forEach((key, values) -> httpHeaders.put(key, new LinkedList<>(values)));
+								requestHeaders.forEach((key, values) -> httpHeaders.put(key, new ArrayList<>(values)));
 							}
 							logBody(requestBody, requestContentType, genericConverter);
 							genericConverter.write(requestBody, requestBodyType, requestContentType, httpRequest);
@@ -942,7 +938,7 @@ public class RestTemplate extends InterceptingHttpAccessor implements RestOperat
 					}
 					else if (messageConverter.canWrite(requestBodyClass, requestContentType)) {
 						if (!requestHeaders.isEmpty()) {
-							requestHeaders.forEach((key, values) -> httpHeaders.put(key, new LinkedList<>(values)));
+							requestHeaders.forEach((key, values) -> httpHeaders.put(key, new ArrayList<>(values)));
 						}
 						logBody(requestBody, requestContentType, messageConverter);
 						((HttpMessageConverter<Object>) messageConverter).write(

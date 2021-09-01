@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,11 +18,13 @@ package org.springframework.http.codec.json;
 
 import java.io.IOException;
 import java.lang.annotation.Annotation;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
@@ -103,7 +105,7 @@ public abstract class AbstractJackson2Decoder extends Jackson2CodecSupport imple
 
 	@Override
 	public boolean canDecode(ResolvableType elementType, @Nullable MimeType mimeType) {
-		JavaType javaType = getObjectMapper().getTypeFactory().constructType(elementType.getType());
+		JavaType javaType = getObjectMapper().constructType(elementType.getType());
 		// Skip String: CharSequenceDecoder + "*/*" comes after
 		return (!CharSequence.class.isAssignableFrom(elementType.toClass()) &&
 				getObjectMapper().canDeserialize(javaType) && supportsMimeType(mimeType));
@@ -113,17 +115,46 @@ public abstract class AbstractJackson2Decoder extends Jackson2CodecSupport imple
 	public Flux<Object> decode(Publisher<DataBuffer> input, ResolvableType elementType,
 			@Nullable MimeType mimeType, @Nullable Map<String, Object> hints) {
 
-		Flux<TokenBuffer> tokens = Jackson2Tokenizer.tokenize(
-				Flux.from(input), this.jsonFactory, getObjectMapper(), true, getMaxInMemorySize());
+		boolean forceUseOfBigDecimal = getObjectMapper().isEnabled(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS);
+		if (BigDecimal.class.equals(elementType.getType())) {
+			forceUseOfBigDecimal = true;
+		}
+
+		Flux<DataBuffer> processed = processInput(input, elementType, mimeType, hints);
+		Flux<TokenBuffer> tokens = Jackson2Tokenizer.tokenize(processed, this.jsonFactory, getObjectMapper(),
+				true, forceUseOfBigDecimal, getMaxInMemorySize());
 		return decodeInternal(tokens, elementType, mimeType, hints);
+	}
+
+	/**
+	 * Process the input publisher into a flux. Default implementation returns
+	 * {@link Flux#from(Publisher)}, but subclasses can choose to to customize
+	 * this behaviour.
+	 * @param input the {@code DataBuffer} input stream to process
+	 * @param elementType the expected type of elements in the output stream
+	 * @param mimeType the MIME type associated with the input stream (optional)
+	 * @param hints additional information about how to do encode
+	 * @return the processed flux
+	 * @since 5.1.14
+	 */
+	protected Flux<DataBuffer> processInput(Publisher<DataBuffer> input, ResolvableType elementType,
+				@Nullable MimeType mimeType, @Nullable Map<String, Object> hints) {
+
+		return Flux.from(input);
 	}
 
 	@Override
 	public Mono<Object> decodeToMono(Publisher<DataBuffer> input, ResolvableType elementType,
 			@Nullable MimeType mimeType, @Nullable Map<String, Object> hints) {
 
-		Flux<TokenBuffer> tokens = Jackson2Tokenizer.tokenize(
-				Flux.from(input), this.jsonFactory, getObjectMapper(), false, getMaxInMemorySize());
+		boolean forceUseOfBigDecimal = getObjectMapper().isEnabled(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS);
+		if (BigDecimal.class.equals(elementType.getType())) {
+			forceUseOfBigDecimal = true;
+		}
+
+		Flux<DataBuffer> processed = processInput(input, elementType, mimeType, hints);
+		Flux<TokenBuffer> tokens = Jackson2Tokenizer.tokenize(processed, this.jsonFactory, getObjectMapper(),
+				false, forceUseOfBigDecimal, getMaxInMemorySize());
 		return decodeInternal(tokens, elementType, mimeType, hints).singleOrEmpty();
 	}
 
@@ -166,7 +197,7 @@ public abstract class AbstractJackson2Decoder extends Jackson2CodecSupport imple
 	}
 
 
-	// HttpMessageDecoder...
+	// HttpMessageDecoder
 
 	@Override
 	public Map<String, Object> getDecodeHints(ResolvableType actualType, ResolvableType elementType,
@@ -180,7 +211,8 @@ public abstract class AbstractJackson2Decoder extends Jackson2CodecSupport imple
 		return getMimeTypes();
 	}
 
-	// Jackson2CodecSupport ...
+
+	// Jackson2CodecSupport
 
 	@Override
 	protected <A extends Annotation> A getAnnotation(MethodParameter parameter, Class<A> annotType) {

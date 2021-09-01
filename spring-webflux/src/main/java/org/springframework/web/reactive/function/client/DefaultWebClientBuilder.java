@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,9 +25,12 @@ import java.util.function.Consumer;
 
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.client.reactive.ClientHttpConnector;
+import org.springframework.http.client.reactive.JettyClientHttpConnector;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
+import org.springframework.http.codec.ClientCodecConfigurer;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
+import org.springframework.util.ClassUtils;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -38,9 +41,21 @@ import org.springframework.web.util.UriBuilderFactory;
  * Default implementation of {@link WebClient.Builder}.
  *
  * @author Rossen Stoyanchev
+ * @author Brian Clozel
  * @since 5.0
  */
 final class DefaultWebClientBuilder implements WebClient.Builder {
+
+	private static final boolean reactorClientPresent;
+
+	private static final boolean jettyClientPresent;
+
+	static {
+		ClassLoader loader = DefaultWebClientBuilder.class.getClassLoader();
+		reactorClientPresent = ClassUtils.isPresent("reactor.netty.http.client.HttpClient", loader);
+		jettyClientPresent = ClassUtils.isPresent("org.eclipse.jetty.client.HttpClient", loader);
+	}
+
 
 	@Nullable
 	private String baseUrl;
@@ -66,14 +81,17 @@ final class DefaultWebClientBuilder implements WebClient.Builder {
 	@Nullable
 	private ClientHttpConnector connector;
 
-	private ExchangeStrategies exchangeStrategies;
+	@Nullable
+	private ExchangeStrategies strategies;
+
+	@Nullable
+	private List<Consumer<ExchangeStrategies.Builder>> strategiesConfigurers;
 
 	@Nullable
 	private ExchangeFunction exchangeFunction;
 
 
 	public DefaultWebClientBuilder() {
-		this.exchangeStrategies = ExchangeStrategies.withDefaults();
 	}
 
 	public DefaultWebClientBuilder(DefaultWebClientBuilder other) {
@@ -83,6 +101,7 @@ final class DefaultWebClientBuilder implements WebClient.Builder {
 		this.defaultUriVariables = (other.defaultUriVariables != null ?
 				new LinkedHashMap<>(other.defaultUriVariables) : null);
 		this.uriBuilderFactory = other.uriBuilderFactory;
+
 		if (other.defaultHeaders != null) {
 			this.defaultHeaders = new HttpHeaders();
 			this.defaultHeaders.putAll(other.defaultHeaders);
@@ -90,12 +109,16 @@ final class DefaultWebClientBuilder implements WebClient.Builder {
 		else {
 			this.defaultHeaders = null;
 		}
+
 		this.defaultCookies = (other.defaultCookies != null ?
 				new LinkedMultiValueMap<>(other.defaultCookies) : null);
 		this.defaultRequest = other.defaultRequest;
-		this.filters = other.filters != null ? new ArrayList<>(other.filters) : null;
+		this.filters = (other.filters != null ? new ArrayList<>(other.filters) : null);
+
 		this.connector = other.connector;
-		this.exchangeStrategies = other.exchangeStrategies;
+		this.strategies = other.strategies;
+		this.strategiesConfigurers = (other.strategiesConfigurers != null ?
+				new ArrayList<>(other.strategiesConfigurers) : null);
 		this.exchangeFunction = other.exchangeFunction;
 	}
 
@@ -190,9 +213,27 @@ final class DefaultWebClientBuilder implements WebClient.Builder {
 	}
 
 	@Override
+	public WebClient.Builder codecs(Consumer<ClientCodecConfigurer> configurer) {
+		if (this.strategiesConfigurers == null) {
+			this.strategiesConfigurers = new ArrayList<>(4);
+		}
+		this.strategiesConfigurers.add(builder -> builder.codecs(configurer));
+		return this;
+	}
+
+	@Override
 	public WebClient.Builder exchangeStrategies(ExchangeStrategies strategies) {
-		Assert.notNull(strategies, "ExchangeStrategies must not be null");
-		this.exchangeStrategies = strategies;
+		this.strategies = strategies;
+		return this;
+	}
+
+	@Override
+	@Deprecated
+	public WebClient.Builder exchangeStrategies(Consumer<ExchangeStrategies.Builder> configurer) {
+		if (this.strategiesConfigurers == null) {
+			this.strategiesConfigurers = new ArrayList<>(4);
+		}
+		this.strategiesConfigurers.add(configurer);
 		return this;
 	}
 
@@ -215,45 +256,50 @@ final class DefaultWebClientBuilder implements WebClient.Builder {
 
 	@Override
 	public WebClient build() {
-		ExchangeFunction exchange = initExchangeFunction();
+		ExchangeFunction exchange = (this.exchangeFunction == null ?
+				ExchangeFunctions.create(getOrInitConnector(), initExchangeStrategies()) :
+				this.exchangeFunction);
 		ExchangeFunction filteredExchange = (this.filters != null ? this.filters.stream()
 				.reduce(ExchangeFilterFunction::andThen)
 				.map(filter -> filter.apply(exchange))
 				.orElse(exchange) : exchange);
 		return new DefaultWebClient(filteredExchange, initUriBuilderFactory(),
-				this.defaultHeaders != null ? unmodifiableCopy(this.defaultHeaders) : null,
-				this.defaultCookies != null ? unmodifiableCopy(this.defaultCookies) : null,
+				this.defaultHeaders != null ? HttpHeaders.readOnlyHttpHeaders(this.defaultHeaders) : null,
+				this.defaultCookies != null ? CollectionUtils.unmodifiableMultiValueMap(this.defaultCookies) : null,
 				this.defaultRequest, new DefaultWebClientBuilder(this));
 	}
 
-	private ExchangeFunction initExchangeFunction() {
-		if (this.exchangeFunction != null) {
-			return this.exchangeFunction;
+	private ClientHttpConnector getOrInitConnector() {
+		if (this.connector != null) {
+			return this.connector;
 		}
-		else if (this.connector != null) {
-			return ExchangeFunctions.create(this.connector, this.exchangeStrategies);
+		else if (reactorClientPresent) {
+			return new ReactorClientHttpConnector();
 		}
-		else {
-			return ExchangeFunctions.create(new ReactorClientHttpConnector(), this.exchangeStrategies);
+		else if (jettyClientPresent) {
+			return new JettyClientHttpConnector();
 		}
+		throw new IllegalStateException("No suitable default ClientHttpConnector found");
+	}
+
+	private ExchangeStrategies initExchangeStrategies() {
+		if (CollectionUtils.isEmpty(this.strategiesConfigurers)) {
+			return (this.strategies != null ? this.strategies : ExchangeStrategies.withDefaults());
+		}
+		ExchangeStrategies.Builder builder =
+				(this.strategies != null ? this.strategies.mutate() : ExchangeStrategies.builder());
+		this.strategiesConfigurers.forEach(configurer -> configurer.accept(builder));
+		return builder.build();
 	}
 
 	private UriBuilderFactory initUriBuilderFactory() {
 		if (this.uriBuilderFactory != null) {
 			return this.uriBuilderFactory;
 		}
-		DefaultUriBuilderFactory factory = this.baseUrl != null ?
-				new DefaultUriBuilderFactory(this.baseUrl) : new DefaultUriBuilderFactory();
+		DefaultUriBuilderFactory factory = (this.baseUrl != null ?
+				new DefaultUriBuilderFactory(this.baseUrl) : new DefaultUriBuilderFactory());
 		factory.setDefaultUriVariables(this.defaultUriVariables);
 		return factory;
-	}
-
-	private static HttpHeaders unmodifiableCopy(HttpHeaders headers) {
-		return HttpHeaders.readOnlyHttpHeaders(headers);
-	}
-
-	private static <K, V> MultiValueMap<K, V> unmodifiableCopy(MultiValueMap<K, V> map) {
-		return CollectionUtils.unmodifiableMultiValueMap(new LinkedMultiValueMap<>(map));
 	}
 
 }

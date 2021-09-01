@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2018 the original author or authors.
+ * Copyright 2002-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,6 @@
 
 package org.springframework.web.reactive.config;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 
 import org.springframework.web.cors.CorsConfiguration;
@@ -28,6 +27,7 @@ import org.springframework.web.cors.CorsConfiguration;
  * @author Sebastien Deleuze
  * @author Rossen Stoyanchev
  * @since 5.0
+ * @see CorsConfiguration
  * @see CorsRegistry
  */
 public class CorsRegistration {
@@ -39,6 +39,7 @@ public class CorsRegistration {
 
 	public CorsRegistration(String pathPattern) {
 		this.pathPattern = pathPattern;
+		// Same implicit default values as the @CrossOrigin annotation + allows simple methods
 		this.config = new CorsConfiguration().applyPermitDefaultValues();
 	}
 
@@ -58,7 +59,7 @@ public class CorsRegistration {
 	 * See the Spring Framework reference for more on this filter.
 	 */
 	public CorsRegistration allowedOrigins(String... origins) {
-		this.config.setAllowedOrigins(new ArrayList<>(Arrays.asList(origins)));
+		this.config.setAllowedOrigins(Arrays.asList(origins));
 		return this;
 	}
 
@@ -69,7 +70,7 @@ public class CorsRegistration {
 	 * are allowed.
 	 */
 	public CorsRegistration allowedMethods(String... methods) {
-		this.config.setAllowedMethods(new ArrayList<>(Arrays.asList(methods)));
+		this.config.setAllowedMethods(Arrays.asList(methods));
 		return this;
 	}
 
@@ -83,7 +84,7 @@ public class CorsRegistration {
 	 * <p>By default all headers are allowed.
 	 */
 	public CorsRegistration allowedHeaders(String... headers) {
-		this.config.setAllowedHeaders(new ArrayList<>(Arrays.asList(headers)));
+		this.config.setAllowedHeaders(Arrays.asList(headers));
 		return this;
 	}
 
@@ -92,11 +93,12 @@ public class CorsRegistration {
 	 * {@code Cache-Control}, {@code Content-Language}, {@code Content-Type},
 	 * {@code Expires}, {@code Last-Modified}, or {@code Pragma}, that an
 	 * actual response might have and can be exposed.
-	 * <p>Note that {@code "*"} is not supported on this property.
+	 * <p>The special value {@code "*"} allows all headers to be exposed for
+	 * non-credentialed requests.
 	 * <p>By default this is not set.
 	 */
 	public CorsRegistration exposedHeaders(String... headers) {
-		this.config.setExposedHeaders(new ArrayList<>(Arrays.asList(headers)));
+		this.config.setExposedHeaders(Arrays.asList(headers));
 		return this;
 	}
 

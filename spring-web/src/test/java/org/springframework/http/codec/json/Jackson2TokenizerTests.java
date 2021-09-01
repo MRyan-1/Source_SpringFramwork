@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,9 +19,12 @@ package org.springframework.http.codec.json;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.List;
 
 import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.core.TreeNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.util.TokenBuffer;
@@ -37,8 +40,10 @@ import org.springframework.core.io.buffer.AbstractLeakCheckingTestCase;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferLimitException;
 
-import static java.util.Arrays.*;
-import static java.util.Collections.*;
+import static java.util.Arrays.asList;
+import static java.util.Collections.singletonList;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 /**
  * @author Arjen Poutsma
@@ -210,8 +215,8 @@ public class Jackson2TokenizerTests extends AbstractLeakCheckingTestCase {
 				.expectNext(expected)
 				.verifyComplete();
 
-		StepVerifier.create(decode(source, false, maxInMemorySize - 1))
-				.expectError(DataBufferLimitException.class);
+		StepVerifier.create(decode(source, false, maxInMemorySize - 2))
+				.verifyError(DataBufferLimitException.class);
 	}
 
 	@Test
@@ -242,7 +247,8 @@ public class Jackson2TokenizerTests extends AbstractLeakCheckingTestCase {
 	public void errorInStream() {
 		DataBuffer buffer = stringBuffer("{\"id\":1,\"name\":");
 		Flux<DataBuffer> source = Flux.just(buffer).concatWith(Flux.error(new RuntimeException()));
-		Flux<TokenBuffer> result = Jackson2Tokenizer.tokenize(source, this.jsonFactory, this.objectMapper, true, -1);
+		Flux<TokenBuffer> result = Jackson2Tokenizer.tokenize(source, this.jsonFactory, this.objectMapper, true,
+				false, -1);
 
 		StepVerifier.create(result)
 				.expectError(RuntimeException.class)
@@ -252,19 +258,49 @@ public class Jackson2TokenizerTests extends AbstractLeakCheckingTestCase {
 	@Test  // SPR-16521
 	public void jsonEOFExceptionIsWrappedAsDecodingError() {
 		Flux<DataBuffer> source = Flux.just(stringBuffer("{\"status\": \"noClosingQuote}"));
-		Flux<TokenBuffer> tokens = Jackson2Tokenizer.tokenize(source, this.jsonFactory, this.objectMapper, false, -1);
+		Flux<TokenBuffer> tokens = Jackson2Tokenizer.tokenize(source, this.jsonFactory, this.objectMapper, false,
+				false, -1);
 
 		StepVerifier.create(tokens)
 				.expectError(DecodingException.class)
 				.verify();
 	}
 
+	@Test
+	public void useBigDecimalForFloats() {
+		for (boolean useBigDecimalForFloats : Arrays.asList(false, true)) {
+			Flux<DataBuffer> source = Flux.just(stringBuffer("1E+2"));
+			Flux<TokenBuffer> tokens =
+					Jackson2Tokenizer.tokenize(source, this.jsonFactory, this.objectMapper, false,
+							useBigDecimalForFloats, -1);
+
+			StepVerifier.create(tokens)
+					.assertNext(tokenBuffer -> {
+						try {
+							JsonParser parser = tokenBuffer.asParser();
+							JsonToken token = parser.nextToken();
+							assertEquals(JsonToken.VALUE_NUMBER_FLOAT, token);
+							JsonParser.NumberType numberType = parser.getNumberType();
+							if (useBigDecimalForFloats) {
+								assertEquals(JsonParser.NumberType.BIG_DECIMAL, numberType);
+							}
+							else {
+								assertEquals(JsonParser.NumberType.DOUBLE, numberType);
+							}
+						}
+						catch (IOException ex) {
+							fail(ex.getMessage());
+						}
+					})
+					.verifyComplete();
+		}
+	}
 
 	private Flux<String> decode(List<String> source, boolean tokenize, int maxInMemorySize) {
 
 		Flux<TokenBuffer> tokens = Jackson2Tokenizer.tokenize(
 				Flux.fromIterable(source).map(this::stringBuffer),
-				this.jsonFactory, this.objectMapper, tokenize, maxInMemorySize);
+				this.jsonFactory, this.objectMapper, tokenize, false, maxInMemorySize);
 
 		return tokens
 				.map(tokenBuffer -> {
