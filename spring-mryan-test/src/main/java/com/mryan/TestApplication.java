@@ -1,3 +1,5 @@
+package com.mryan;
+
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
 /**
