@@ -38,6 +38,10 @@ import java.io.InputStream;
  * @see InputStreamResource
  * @see ByteArrayResource
  */
+
+/**
+ * 无论是File还是Classpath下的资源还是Byte Array等，getInputStream都能返回一个新的InputStream对象
+ */
 public interface InputStreamSource {
 
 	/**

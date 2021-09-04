@@ -44,38 +44,50 @@ import org.springframework.core.io.Resource;
  * @author Rod Johnson
  * @author Juergen Hoeller
  * @author Chris Beams
- * @since 15 April 2001
  * @see org.springframework.beans.factory.support.DefaultListableBeanFactory
  * @see XmlBeanDefinitionReader
+ * @since 15 April 2001
  * @deprecated as of Spring 3.1 in favor of {@link DefaultListableBeanFactory} and
  * {@link XmlBeanDefinitionReader}
+ */
+
+/**
+ * 对DefaultListableBeanFactory进行了扩展，主要对从XML文档中读取BeanDefiniteion，对于注册和获取Bean都是使用从父类DefaultListableBeanFactory继承的方式去实现
+ * 而唯独与父类不同的个性化实现就是增加了XmlBeanDefinitionReader类型的reader属性。在XmlBeanFactory中主要使用reader属性对资源文件进行读取和注册。
  */
 @Deprecated
 @SuppressWarnings({"serial", "all"})
 public class XmlBeanFactory extends DefaultListableBeanFactory {
 
+	/**
+	 * 主要对资源文件读取，解析，和注册
+	 */
 	private final XmlBeanDefinitionReader reader = new XmlBeanDefinitionReader(this);
 
 
 	/**
 	 * Create a new XmlBeanFactory with the given resource,
 	 * which must be parsable using DOM.
+	 *
 	 * @param resource the XML resource to load bean definitions from
 	 * @throws BeansException in case of loading or parsing errors
 	 */
 	public XmlBeanFactory(Resource resource) throws BeansException {
+		//调用内部构造函数
 		this(resource, null);
 	}
 
 	/**
 	 * Create a new XmlBeanFactory with the given input stream,
 	 * which must be parsable using DOM.
-	 * @param resource the XML resource to load bean definitions from
+	 *
+	 * @param resource          the XML resource to load bean definitions from
 	 * @param parentBeanFactory parent bean factory
 	 * @throws BeansException in case of loading or parsing errors
 	 */
 	public XmlBeanFactory(Resource resource, BeanFactory parentBeanFactory) throws BeansException {
 		super(parentBeanFactory);
+		//资源加载的真正实现 整个资源加载的切入点
 		this.reader.loadBeanDefinitions(resource);
 	}
 
