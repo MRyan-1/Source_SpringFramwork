@@ -313,6 +313,7 @@ public class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader {
 	 */
 	@Override
 	public int loadBeanDefinitions(Resource resource) throws BeanDefinitionStoreException {
+		//进入XmlBeanDefinitionReader后首先对参数Resource使用EncodedResource类进行封装
 		return loadBeanDefinitions(new EncodedResource(resource));
 	}
 
@@ -329,7 +330,7 @@ public class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader {
 		if (logger.isTraceEnabled()) {
 			logger.trace("Loading XML bean definitions from " + encodedResource);
 		}
-
+		//通过属性来记录已经加载的资源
 		Set<EncodedResource> currentResources = this.resourcesCurrentlyBeingLoaded.get();
 		if (currentResources == null) {
 			currentResources = new HashSet<>(4);
@@ -340,12 +341,15 @@ public class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader {
 					"Detected cyclic loading of " + encodedResource + " - check your import definitions!");
 		}
 		try {
+			//从encodedResource中获取已经封装好的Resource对象并再次从Resource中获取其中的InputStream
 			InputStream inputStream = encodedResource.getResource().getInputStream();
 			try {
+				//构造InputSource
 				InputSource inputSource = new InputSource(inputStream);
 				if (encodedResource.getEncoding() != null) {
 					inputSource.setEncoding(encodedResource.getEncoding());
 				}
+				//通过构造的InputSource实例和Resource实例继续调用函数doLoadBeanDefinitions
 				return doLoadBeanDefinitions(inputSource, encodedResource.getResource());
 			} finally {
 				inputStream.close();
@@ -402,7 +406,9 @@ public class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader {
 			throws BeanDefinitionStoreException {
 
 		try {
+			//获取对XML文件的验证模式，加载XML文件，并得到对应的Document对象
 			Document doc = doLoadDocument(inputSource, resource);
+			//提取和注册Bean
 			int count = registerBeanDefinitions(doc, resource);
 			if (logger.isDebugEnabled()) {
 				logger.debug("Loaded " + count + " bean definitions from " + resource);
@@ -439,7 +445,9 @@ public class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader {
 	 * @see DocumentLoader#loadDocument
 	 */
 	protected Document doLoadDocument(InputSource inputSource, Resource resource) throws Exception {
+		//资源文件转换为Document的过程
 		return this.documentLoader.loadDocument(inputSource, getEntityResolver(), this.errorHandler,
+				//getValidationModeForResource 获取XML的验证模式
 				getValidationModeForResource(resource), isNamespaceAware());
 	}
 
@@ -453,10 +461,14 @@ public class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader {
 	 * @see #detectValidationMode
 	 */
 	protected int getValidationModeForResource(Resource resource) {
+		//DTD（Document Type Definition）即文档类型定义，是一种XML约束模式语言，是XML文件的验证机制，属于XML文件组成的一部分。DTD是一种保证XML文档格式正确的有效方法，可以通过比较XML文档和DTD文件来看文档是否符合规范，元素和标签使用是否正确。 一个DTD文档包含：元素的定义规则，元素间关系的定义规则，元素可使用的属性，可使用的实体或符号规则。
+		//XML Schema语言就是XSD（XML Schemas Definition）。XML Schema描述了XML文档的结构。可以用一个指定的XML Schema来验证某个XML文档，以检查该XML文档是否符合其要求。文档设计者可以通过XML Schema指定XML文档所允许的结构和内容，并可据此检查XML文档是否是有效的。XML Schema本身是XML文档，它符合XML语法结构。可以用通用的XML解析器解析它。
 		int validationModeToUse = getValidationMode();
+		//如果手动指定了验证模式则使用指定的验证模式
 		if (validationModeToUse != VALIDATION_AUTO) {
 			return validationModeToUse;
 		}
+		//如果未指定则使用自动监测
 		int detectedMode = detectValidationMode(resource);
 		if (detectedMode != VALIDATION_AUTO) {
 			return detectedMode;
@@ -494,6 +506,7 @@ public class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader {
 		}
 
 		try {
+			//detectValidationMode
 			return this.validationModeDetector.detectValidationMode(inputStream);
 		} catch (IOException ex) {
 			throw new BeanDefinitionStoreException("Unable to determine validation mode for [" +
@@ -516,9 +529,14 @@ public class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader {
 	 * @see BeanDefinitionDocumentReader#registerBeanDefinitions
 	 */
 	public int registerBeanDefinitions(Document doc, Resource resource) throws BeanDefinitionStoreException {
+		//使用DefaultBeanDefinitionDocumentReader实例化BeanDefinitionDocumentReader
 		BeanDefinitionDocumentReader documentReader = createBeanDefinitionDocumentReader();
+		//在实例化BeanDefinitonReader的时候会将BeanDefinitionRegistry传入，默认使用继承自DefaultListableBeanFactory的子类
+		//记录统计钱BeanDefinition的加载个数
 		int countBefore = getRegistry().getBeanDefinitionCount();
+		//加载和注册Bean
 		documentReader.registerBeanDefinitions(doc, createReaderContext(resource));
+		//记录本次加载的BeanDeginition的个数
 		return getRegistry().getBeanDefinitionCount() - countBefore;
 	}
 

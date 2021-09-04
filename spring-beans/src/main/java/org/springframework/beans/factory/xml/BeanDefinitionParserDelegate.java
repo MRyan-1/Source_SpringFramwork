@@ -1490,6 +1490,7 @@ public class BeanDefinitionParserDelegate {
 
 	/**
 	 * Determine whether the given node indicates the default namespace.
+	 * 判断是否默认命名空间还是自定义命名空间的办法其实是使用node.getNamespaceURI()获取命名空间，并与Spring中固定的命名空间http://www.springframework.org/schema/beans进行比对。如果一致则认为是默认，否则就认为是自定义。
 	 */
 	public boolean isDefaultNamespace(Node node) {
 		return isDefaultNamespace(getNamespaceURI(node));

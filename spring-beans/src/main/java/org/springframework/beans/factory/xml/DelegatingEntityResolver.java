@@ -32,16 +32,26 @@ import org.springframework.util.Assert;
  * @author Rob Harrop
  * @author Juergen Hoeller
  * @author Rick Evans
- * @since 2.0
  * @see BeansDtdResolver
  * @see PluggableSchemaResolver
+ * @since 2.0
+ */
+
+/**
+ * 验证文件默认的加载方式是通过URL进行网络下载获取，这样会造成延迟，用户体验也不好，一般的做法都是将验证文件放置在自己的工程里，
+ * 那么怎么做才能将这个URL转换为自己工程里对应的地址文件呢？我们以加载DTD文件为例来看看Spring中是如何实现的。
+ * 根据之前Spring中通过getEntityResolver()方法对EntityResolver的获取，我们知道，Spring中使用DelegatingEntityResolver类为EntityResolver的实现类
  */
 public class DelegatingEntityResolver implements EntityResolver {
 
-	/** Suffix for DTD files. */
+	/**
+	 * Suffix for DTD files.
+	 */
 	public static final String DTD_SUFFIX = ".dtd";
 
-	/** Suffix for schema definition files. */
+	/**
+	 * Suffix for schema definition files.
+	 */
 	public static final String XSD_SUFFIX = ".xsd";
 
 
@@ -55,8 +65,9 @@ public class DelegatingEntityResolver implements EntityResolver {
 	 * a default {@link BeansDtdResolver} and a default {@link PluggableSchemaResolver}.
 	 * <p>Configures the {@link PluggableSchemaResolver} with the supplied
 	 * {@link ClassLoader}.
+	 *
 	 * @param classLoader the ClassLoader to use for loading
-	 * (can be {@code null}) to use the default ClassLoader)
+	 *                    (can be {@code null}) to use the default ClassLoader)
 	 */
 	public DelegatingEntityResolver(@Nullable ClassLoader classLoader) {
 		this.dtdResolver = new BeansDtdResolver();
@@ -66,7 +77,8 @@ public class DelegatingEntityResolver implements EntityResolver {
 	/**
 	 * Create a new DelegatingEntityResolver that delegates to
 	 * the given {@link EntityResolver EntityResolvers}.
-	 * @param dtdResolver the EntityResolver to resolve DTDs with
+	 *
+	 * @param dtdResolver    the EntityResolver to resolve DTDs with
 	 * @param schemaResolver the EntityResolver to resolve XML schemas with
 	 */
 	public DelegatingEntityResolver(EntityResolver dtdResolver, EntityResolver schemaResolver) {
@@ -84,9 +96,10 @@ public class DelegatingEntityResolver implements EntityResolver {
 
 		if (systemId != null) {
 			if (systemId.endsWith(DTD_SUFFIX)) {
+				//如果是DTD从这里解析 BeansDtdResolver
 				return this.dtdResolver.resolveEntity(publicId, systemId);
-			}
-			else if (systemId.endsWith(XSD_SUFFIX)) {
+			} else if (systemId.endsWith(XSD_SUFFIX)) {
+				//通过调用META-INF/Spring.schemas解析
 				return this.schemaResolver.resolveEntity(publicId, systemId);
 			}
 		}

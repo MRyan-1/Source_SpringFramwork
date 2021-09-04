@@ -124,6 +124,14 @@ public class DefaultDocumentLoader implements DocumentLoader {
 	 * @return the JAXP DocumentBuilder
 	 * @throws ParserConfigurationException if thrown by JAXP methods
 	 */
+	/**
+	 *
+	 * @param factory
+	 * @param entityResolver  如果SAX应用程序需要实现自定义处理外部实体，则必须实现此接口并使用setEntityResolver方法向SAX 驱动器注册一个实例。也就是说，对于解析一个XML，SAX首先读取该XML文档上的声明，根据声明去寻找相应的DTD定义，以便对文档进行一个验证。默认的寻找规则，即通过网络（实现上就是声明的DTD的URI地址）来下载相应的DTD声明，并进行认证。下载的过程是一个漫长的过程，而且当网络中断或不可用时，这里会报错，就是因为相应的DTD声明没有被找到的原因。EntityResolver的作用是项目本身就可以提供一个如何寻找DTD声明的方法，即由程序来实现寻找DTD声明的过程，比如我们将DTD文件放到项目中某处，在实现时直接将此文档读取并返回给SAX即可。这样就避免了通过网络来寻找相应的声明。
+	 * @param errorHandler
+	 * @return
+	 * @throws ParserConfigurationException
+	 */
 	protected DocumentBuilder createDocumentBuilder(DocumentBuilderFactory factory,
 			@Nullable EntityResolver entityResolver, @Nullable ErrorHandler errorHandler)
 			throws ParserConfigurationException {

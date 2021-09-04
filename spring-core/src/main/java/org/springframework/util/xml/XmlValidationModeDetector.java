@@ -83,19 +83,22 @@ public class XmlValidationModeDetector {
 	/**
 	 * Detect the validation mode for the XML document in the supplied {@link InputStream}.
 	 * Note that the supplied {@link InputStream} is closed by this method before returning.
+	 *
+	 *
 	 * @param inputStream the InputStream to parse
 	 * @throws IOException in case of I/O failure
 	 * @see #VALIDATION_DTD
 	 * @see #VALIDATION_XSD
 	 */
 	public int detectValidationMode(InputStream inputStream) throws IOException {
-		// Peek into the file to look for DOCTYPE.
+		//监测验证模式其实就是判断是否包含<!DOCTYPE>，如果包含就是DTD，否则就是XSD
 		BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
 		try {
 			boolean isDtdValidated = false;
 			String content;
 			while ((content = reader.readLine()) != null) {
 				content = consumeCommentTokens(content);
+				//如果读取的行是空或者是注释则忽略
 				if (this.inComment || !StringUtils.hasText(content)) {
 					continue;
 				}
@@ -103,19 +106,18 @@ public class XmlValidationModeDetector {
 					isDtdValidated = true;
 					break;
 				}
+				//读取到<开始符号，验证模式一定会在开始符号之前
 				if (hasOpeningTag(content)) {
 					// End of meaningful data...
 					break;
 				}
 			}
 			return (isDtdValidated ? VALIDATION_DTD : VALIDATION_XSD);
-		}
-		catch (CharConversionException ex) {
+		} catch (CharConversionException ex) {
 			// Choked on some character encoding...
 			// Leave the decision up to the caller.
 			return VALIDATION_AUTO;
-		}
-		finally {
+		} finally {
 			reader.close();
 		}
 	}
@@ -181,6 +183,7 @@ public class XmlValidationModeDetector {
 
 	/**
 	 * Try to consume the {@link #START_COMMENT} token.
+	 *
 	 * @see #commentToken(String, String, boolean)
 	 */
 	private int startComment(String line) {
@@ -198,7 +201,7 @@ public class XmlValidationModeDetector {
 	 */
 	private int commentToken(String line, String token, boolean inCommentIfPresent) {
 		int index = line.indexOf(token);
-		if (index > - 1) {
+		if (index > -1) {
 			this.inComment = inCommentIfPresent;
 		}
 		return (index == -1 ? index : index + token.length());
