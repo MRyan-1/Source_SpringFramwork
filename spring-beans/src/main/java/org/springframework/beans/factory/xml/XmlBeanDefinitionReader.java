@@ -349,7 +349,7 @@ public class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader {
 				if (encodedResource.getEncoding() != null) {
 					inputSource.setEncoding(encodedResource.getEncoding());
 				}
-				//通过构造的InputSource实例和Resource实例继续调用函数doLoadBeanDefinitions
+				//通过构造的InputSource实例和Resource实例继续调用函数doLoadBeanDefinitions  look!
 				return doLoadBeanDefinitions(inputSource, encodedResource.getResource());
 			} finally {
 				inputStream.close();

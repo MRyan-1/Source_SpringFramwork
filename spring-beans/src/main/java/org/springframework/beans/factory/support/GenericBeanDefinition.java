@@ -40,6 +40,7 @@ import org.springframework.util.ObjectUtils;
 
 /**
  * bean文件配置属性定义类，一站式服务类
+ * GenericBeanDefinition只是子类实现，而大部分的通用属性都保存在AbstractBeanDefinition中
  */
 @SuppressWarnings("serial")
 public class GenericBeanDefinition extends AbstractBeanDefinition {

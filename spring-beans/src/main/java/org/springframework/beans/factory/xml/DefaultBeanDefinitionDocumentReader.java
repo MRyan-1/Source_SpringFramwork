@@ -321,6 +321,7 @@ public class DefaultBeanDefinitionDocumentReader implements BeanDefinitionDocume
 		BeanDefinitionHolder bdHolder = delegate.parseBeanDefinitionElement(ele);
 		//当返回的bdHolder不为空的情况下若存在默认标签的子节点下再有自定义属性，还需要再次对自定义标签进行解析
 		if (bdHolder != null) {
+			//look! 适用场景<bean id="test" class="test.MyClass">  <mybean:user username="MRyan"/>    </bean> 使用了自定义配置
 			bdHolder = delegate.decorateBeanDefinitionIfRequired(ele, bdHolder);
 			try {
 				//解析完成之后，需要对解析后的bdHolder进行注册，同样，注册操作委托给了Bean-DefinitionReaderUtils的registerBeanDefinition方法
@@ -329,7 +330,7 @@ public class DefaultBeanDefinitionDocumentReader implements BeanDefinitionDocume
 				getReaderContext().error("Failed to register bean definition with name '" +
 						bdHolder.getBeanName() + "'", ele, ex);
 			}
-			// 发出响应事件，通知相关的监听器，这个bean已经加载完成了
+			// 发出响应事件，通知相关的监听器，这个bean已经加载完成了  这里的实现只为了扩展，当开发人员需要注册BeanDefinition事件进行监听可以通过注册监听器的方式将处理逻辑写入监听器中，目前Spring没有对此事件做任何逻辑处理
 			getReaderContext().fireComponentRegistered(new BeanComponentDefinition(bdHolder));
 		}
 	}
