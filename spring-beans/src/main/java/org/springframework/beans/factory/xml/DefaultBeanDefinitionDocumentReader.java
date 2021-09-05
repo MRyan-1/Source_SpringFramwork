@@ -223,22 +223,28 @@ public class DefaultBeanDefinitionDocumentReader implements BeanDefinitionDocume
 	}
 
 	/**
-	 * Parse an "import" element and load the bean definitions
-	 * from the given resource into the bean factory.
+	 * 解析import标签
+	 * 1. 获取resource属性所表示的路径
+	 * 2. 解析路径中的系统属性，格式：${user.dir}
+	 * 3. 判定location是绝对路径还是相对路径
+	 * 4. 如果是绝对路径则地柜调用bean的解析过程，进行另一次的解析
+	 * 5. 如果相对路径则计算出绝对路径进行解析
+	 * 6. 通知监听器，解析完成
 	 */
 	protected void importBeanDefinitionResource(Element ele) {
+		//获取Resource属性
 		String location = ele.getAttribute(RESOURCE_ATTRIBUTE);
+		//如果不存在resource属性则不作处理
 		if (!StringUtils.hasText(location)) {
 			getReaderContext().error("Resource location must not be empty", ele);
 			return;
 		}
-
-		// Resolve system properties: e.g. "${user.dir}"
+		//解析系统属性，格式"${user.dir}"
 		location = getReaderContext().getEnvironment().resolveRequiredPlaceholders(location);
 
 		Set<Resource> actualResources = new LinkedHashSet<>(4);
 
-		// Discover whether the location is an absolute or relative URI
+		// 判定location是决定URL还是相对URL
 		boolean absoluteLocation = false;
 		try {
 			absoluteLocation = ResourcePatternUtils.isUrl(location) || ResourceUtils.toURI(location).isAbsolute();
@@ -248,6 +254,7 @@ public class DefaultBeanDefinitionDocumentReader implements BeanDefinitionDocume
 		}
 
 		// Absolute or relative?
+		//如果是绝对URL 则直接根据地址加载对应的配置文件
 		if (absoluteLocation) {
 			try {
 				int importCount = getReaderContext().getReader().loadBeanDefinitions(location, actualResources);
@@ -259,14 +266,17 @@ public class DefaultBeanDefinitionDocumentReader implements BeanDefinitionDocume
 						"Failed to import bean definitions from URL location [" + location + "]", ele, ex);
 			}
 		} else {
+			//如果是相对地址则根据相对地址计算出绝对地址
 			// No URL -> considering resource location as relative to the current file.
 			try {
 				int importCount;
+				// Resource存在多个子实现类,如 VfsResource、FileSystemResource等 而每个 resource的createelative方式实现都不一样,所以这里先使用子类的方法尝试解析
 				Resource relativeResource = getReaderContext().getResource().createRelative(location);
 				if (relativeResource.exists()) {
 					importCount = getReaderContext().getReader().loadBeanDefinitions(relativeResource);
 					actualResources.add(relativeResource);
 				} else {
+					//如果解析不成功,则使用默认的解析器 ResourcePatternResolver进行解析
 					String baseLocation = getReaderContext().getResource().getURL().toString();
 					importCount = getReaderContext().getReader().loadBeanDefinitions(
 							StringUtils.applyRelativePath(baseLocation, location), actualResources);
@@ -281,15 +291,26 @@ public class DefaultBeanDefinitionDocumentReader implements BeanDefinitionDocume
 						"Failed to import bean definitions from relative location [" + location + "]", ele, ex);
 			}
 		}
+		//解析后进行监听器激活处理
 		Resource[] actResArray = actualResources.toArray(new Resource[0]);
 		getReaderContext().fireImportProcessed(location, actResArray, extractSource(ele));
 	}
 
 	/**
-	 * Process the given alias element, registering the alias with the registry.
+	 * 对alias标签的处理
+	 * <p>
+	 * 在定义bean时就指定所有的别名并不是总是恰当的。有时我们期望能在当前位置为那些在别处定义的bean引入别名。在XML配置文件中,可用单独的< alias/>元素来完成 bean别名的定义。如配置文件中定义了一个 Javabean:
+	 * <bean id="testbean" class=com.test"/>
+	 * 要给这个Javabean増加別名,以方便不同对象来週用。我们就可以直接使用bean标签中的name属性:
+	 * <bean id="testbean name="testBean,testbean2" class="com.test"/>
+	 * 同样, Spring还有另外一种声明别名的方式:
+	 * <bean id="testbean" class="com.test"/>
+	 * <alias name="testbean" alias="testbean,testbean2"/>
 	 */
 	protected void processAliasRegistration(Element ele) {
+		//获取beanName
 		String name = ele.getAttribute(NAME_ATTRIBUTE);
+		//获取alias
 		String alias = ele.getAttribute(ALIAS_ATTRIBUTE);
 		boolean valid = true;
 		if (!StringUtils.hasText(name)) {
@@ -302,11 +323,13 @@ public class DefaultBeanDefinitionDocumentReader implements BeanDefinitionDocume
 		}
 		if (valid) {
 			try {
+				//注册alias
 				getReaderContext().getRegistry().registerAlias(name, alias);
 			} catch (Exception ex) {
 				getReaderContext().error("Failed to register alias '" + alias +
 						"' for bean with name '" + name + "'", ele, ex);
 			}
+			//别名注册后通知监听器做相应处理
 			getReaderContext().fireAliasRegistered(name, alias, extractSource(ele));
 		}
 	}
