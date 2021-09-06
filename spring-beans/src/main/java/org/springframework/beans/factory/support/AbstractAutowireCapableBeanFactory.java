@@ -503,13 +503,15 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		// Make sure bean class is actually resolved at this point, and
 		// clone the bean definition in case of a dynamically resolved Class
 		// which cannot be stored in the shared merged bean definition.
+		//鎖定class 根据设置的class属性或者根据className来解析class look！
 		Class<?> resolvedClass = resolveBeanClass(mbd, beanName);
 		if (resolvedClass != null && !mbd.hasBeanClass() && mbd.getBeanClassName() != null) {
 			mbdToUse = new RootBeanDefinition(mbd);
 			mbdToUse.setBeanClass(resolvedClass);
 		}
 
-		// Prepare method overrides.
+		// 对override属性进行标记和验证 其实在Spring中确实没有override-method这样的配置,在Spring配置中是存在lookup-method和replace-method的,
+		// 而这两个配置的加载其实就是将配置统一存放在BeanDefinition中的 methodOverrides属性里,而这个函数的操作其实也就是针对于这两个配置的。
 		try {
 			mbdToUse.prepareMethodOverrides();
 		} catch (BeanDefinitionValidationException ex) {
@@ -518,7 +520,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		}
 
 		try {
-			// Give BeanPostProcessors a chance to return a proxy instead of the target bean instance.
+			// 应用初始化前的后置处理，解析指定bean是否存在初始化前的短路操作 给BeanPostProcessors一个机会来返回代理来代替真正的实例 look！
 			Object bean = resolveBeforeInstantiation(beanName, mbdToUse);
 			if (bean != null) {
 				return bean;
@@ -529,6 +531,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		}
 
 		try {
+			//look！ 创建bean
 			Object beanInstance = doCreateBean(beanName, mbdToUse, args);
 			if (logger.isTraceEnabled()) {
 				logger.trace("Finished creating instance of bean '" + beanName + "'");
@@ -1101,8 +1104,10 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 			if (!mbd.isSynthetic() && hasInstantiationAwareBeanPostProcessors()) {
 				Class<?> targetType = determineTargetType(beanName, mbd);
 				if (targetType != null) {
+					//bean实例化前调用，将AbstractBeanDefinition转为BeanWrapper前的处理，给子类一个修改BeanDefinition的机会，通过这个方法后，bean可能已经不是我们认为的bean了，或许是经过代理的bean或者是cglib生成的
 					bean = applyBeanPostProcessorsBeforeInstantiation(targetType, beanName);
 					if (bean != null) {
+						//实例化后的后处理器，Spring中的规则是bean的初始化之后尽可能保证将注册的后置处理器的postProcessAfterInitialization方法应用到该bean中，因为如果返回的bean不为空，name便不会再次经历普通bean的创建过程，所以只能在这里应用后置处理器的postProcessAfterInitialization方法
 						bean = applyBeanPostProcessorsAfterInitialization(bean, beanName);
 					}
 				}
