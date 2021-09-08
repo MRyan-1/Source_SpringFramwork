@@ -602,7 +602,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 				finishBeanFactoryInitialization(beanFactory);
 
 				// Last step: publish corresponding event.
-				//完成刷新过程，通知生命期处理器 lifecyleProcessor刷新过程，同时发出COntextRefreshEvent通知别人
+				//完成刷新过程，通知生命期处理器 lifecycleProcessor刷新过程，同时发出ContextRefreshEvent通知别人
 				finishRefresh();
 			} catch (BeansException ex) {
 				if (logger.isWarnEnabled()) {
