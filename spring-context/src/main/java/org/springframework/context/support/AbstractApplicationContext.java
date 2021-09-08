@@ -685,7 +685,8 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 	 * @see #getBeanFactory()
 	 */
 	protected ConfigurableListableBeanFactory obtainFreshBeanFactory() {
-		//初始BeanFactory 并将进行XML文件读取，并得到BeanFactory记录在当前实体属性中
+		//在这个方法的内部通过createBeanFactory构建了一个IOC容器供给ApplicationContext使用，容器是DefaultListableBeanFactory，并且启动了loadBeanDefinitions加载BeanDefinition  look!
+		//调用AbstractRefreshableApplicationContext的refreshBeanFactory
 		refreshBeanFactory();
 		//返回当前实体的beanFactory属性
 		return getBeanFactory();

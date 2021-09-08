@@ -124,6 +124,7 @@ public abstract class AbstractRefreshableApplicationContext extends AbstractAppl
 	 */
 	@Override
 	protected final void refreshBeanFactory() throws BeansException {
+		//如果已经建立了BeanFactory 则销毁并关闭该BeanFactory
 		if (hasBeanFactory()) {
 			destroyBeans();
 			closeBeanFactory();
@@ -212,6 +213,7 @@ public abstract class AbstractRefreshableApplicationContext extends AbstractAppl
 	 * @return
 	 */
 	protected DefaultListableBeanFactory createBeanFactory() {
+		//getInternalParentBeanFactory()的具体方法参考AbstractApplicationContext中的实现，会根据容器已有的双亲IOC容器的信息来生成DefaultListableBeanFactory的双亲IOC容器
 		return new DefaultListableBeanFactory(getInternalParentBeanFactory());
 	}
 
