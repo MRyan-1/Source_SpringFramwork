@@ -568,22 +568,21 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 
 			//初始化BeanFactory，并进行XML文件读取 look！
 			//ApplicationContext是对BeanFactory的功能上的扩展 不但包含了BeanFactory全部功能更在其基础上添加了大量的扩展应用，
+			//子类启动refreshBeanFactory的地方
 			ConfigurableListableBeanFactory beanFactory = obtainFreshBeanFactory();
 
 			//进入方法前，Spring已经完成了对配置的解析  对BeanFactory进行各种功能填充
 			prepareBeanFactory(beanFactory);
 
 			try {
-				//子类覆盖方法做额外的处理
+				//子类覆盖方法做额外的处理 设置BeanFactory的后置处理
 				postProcessBeanFactory(beanFactory);
 
-				//激活各种BeanFactory处理器
+				//调用BeanFactory的后处理器，这些后处理器是Bean定义中向容器注册的
 				invokeBeanFactoryPostProcessors(beanFactory);
 
-
-				//注册拦截Bean创建的Bean处理器，这里知识注册，真正调用的时候在getBean的时候
+				//注册拦截Bean创建的Bean后处理器，这里知识注册，真正调用的时候在bean的创建过程getBean的时候
 				registerBeanPostProcessors(beanFactory);
-
 
 				//为上下文初始化Message源，不同语言的消息体，国际化处理
 				initMessageSource();
@@ -591,17 +590,16 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 				//初始化应用消息广播器，并放入"applicationEventMulticaster" bean中
 				initApplicationEventMulticaster();
 
-				//留给子类来初始化其他的Bean
+				//留给子类来初始化其他特殊的Bean
 				onRefresh();
 
 				//在所有注册的bean中查找Listener bean 注册到消息广播器中
 				registerListeners();
 
-				// Instantiate all remaining (non-lazy-init) singletons.
-				//初始化剩下的单实例（非惰性的）
+				//实例化剩下的单实例（非惰性的）所有non-lazy-init单件
 				finishBeanFactoryInitialization(beanFactory);
 
-				// Last step: publish corresponding event.
+				// 发布容器事件，结束Refresh过程
 				//完成刷新过程，通知生命期处理器 lifecycleProcessor刷新过程，同时发出ContextRefreshEvent通知别人
 				finishRefresh();
 			} catch (BeansException ex) {
@@ -609,11 +607,9 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 					logger.warn("Exception encountered during context initialization - " +
 							"cancelling refresh attempt: " + ex);
 				}
-
-				// Destroy already created singletons to avoid dangling resources.
+				//为防止Bean资源占用，在异常处理中，销毁已经在前面过程中生成的单件Bean
 				destroyBeans();
-
-				// Reset 'active' flag.
+				//重置 active标志
 				cancelRefresh(ex);
 
 				// Propagate exception to caller.

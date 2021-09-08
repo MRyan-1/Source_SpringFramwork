@@ -52,6 +52,7 @@ import java.util.*;
 
 /**
  * 定义解析Element的各种方法
+ * 包含对各种SpringBean定义规则的处理
  */
 public class BeanDefinitionParserDelegate {
 

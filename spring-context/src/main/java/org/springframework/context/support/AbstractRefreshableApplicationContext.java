@@ -118,9 +118,8 @@ public abstract class AbstractRefreshableApplicationContext extends AbstractAppl
 
 
 	/**
-	 * This implementation performs an actual refresh of this context's underlying
-	 * bean factory, shutting down the previous bean factory (if any) and
-	 * initializing a fresh bean factory for the next phase of the context's lifecycle.
+	 * 在这个方法中创建了BeanFactory，在创建IOC容器前，如果已经有容器存在，那么需要把已有的容器销毁和关闭，保证在refresh以后使用的是新建立起来的IOC容器。
+	 * 实际上refresh很像重启容器，在建立好当前IOC容器后，开始对容器的初始化过程，比如BeanDefinition的载入
 	 */
 	@Override
 	protected final void refreshBeanFactory() throws BeansException {
@@ -130,7 +129,7 @@ public abstract class AbstractRefreshableApplicationContext extends AbstractAppl
 			closeBeanFactory();
 		}
 		try {
-			//创建DefaultListableBeanFactory
+			//创建DefaultListableBeanFactory IOC容器
 			//XmlBeanFactory继承自DefaultListableBeanFactory，并提供了XmlBeanDefinitionReader类型的reader属性
 			//也就是说DefaultListableBeanFactory是容器的基础，必须首先实例化DefaultListableBeanFactory
 			DefaultListableBeanFactory beanFactory = createBeanFactory();
@@ -138,7 +137,7 @@ public abstract class AbstractRefreshableApplicationContext extends AbstractAppl
 			beanFactory.setSerializationId(getId());
 			//定制beanFactory 设置相关属性 包括是否允许覆盖同名称的不同定义的对象，以及循环依赖
 			customizeBeanFactory(beanFactory);
-			//加载BeanDefine 进行XML文件读取解析
+			//启动对BeanDefinition的加载过程 进行XML文件读取解析
 			loadBeanDefinitions(beanFactory);
 			//因为DefaultListableBeanFactory类型的变量是函数内的局部变量，所有使用全局变量记录解析结果
 			this.beanFactory = beanFactory;

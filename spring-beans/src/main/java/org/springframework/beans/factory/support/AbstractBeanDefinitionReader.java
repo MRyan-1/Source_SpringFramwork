@@ -187,11 +187,23 @@ public abstract class AbstractBeanDefinitionReader implements BeanDefinitionRead
 	}
 
 
+	/**
+	 * 这里调用的是loadBeanDefinitions(Resource res)方法,但这个方法在AbstractBeanDefinitionReader类里是没有实现的,它是一个接口方法,具体的实现在XmlBeanDefinitionReader中。在读取器中,需要得到代表XML文件的Resource,因为这个Resource
+	 * 对象封装了对XML文件的I/O操作,所以读取器可以在打开I/O流后得到XML的文件对象。有了这个文件对象以后,就可以按照Spring的Bean定义规则来对这个XML的文档树进行解析了,
+	 * 这个解析是交给BeanDefinitionParserDelegate来完成的
+	 *
+	 * @param resources the resource descriptors
+	 * @return
+	 * @throws BeanDefinitionStoreException
+	 */
 	@Override
 	public int loadBeanDefinitions(Resource... resources) throws BeanDefinitionStoreException {
+		//如果Resource为空，则停止BeanDefinition的载入
+		//然后启动载入BeanDefinition的过程，这个过程会遍历整个Resource集合所有包含的BeanDefinition信息
 		Assert.notNull(resources, "Resource array must not be null");
 		int count = 0;
 		for (Resource resource : resources) {
+			//具体实现在XmlBeanDefinitionReader中
 			count += loadBeanDefinitions(resource);
 		}
 		return count;

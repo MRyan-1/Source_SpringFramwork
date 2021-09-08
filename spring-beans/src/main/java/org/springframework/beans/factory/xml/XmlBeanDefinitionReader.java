@@ -341,7 +341,7 @@ public class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader {
 					"Detected cyclic loading of " + encodedResource + " - check your import definitions!");
 		}
 		try {
-			//从encodedResource中获取已经封装好的Resource对象并再次从Resource中获取其中的InputStream
+			//从encodedResource中获取已经封装好的Resource对象并再次从Resource中获取其中的InputStream 得到XML文件并得到IO的InputSource 准备进行读取
 			InputStream inputStream = encodedResource.getResource().getInputStream();
 			try {
 				//构造InputSource
@@ -402,13 +402,22 @@ public class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader {
 	 * @see #doLoadDocument
 	 * @see #registerBeanDefinitions
 	 */
+	/**
+	 * 从特定的XML文件中实际载入BeanDefinition的地方
+	 *
+	 * @param inputSource
+	 * @param resource
+	 * @return
+	 * @throws BeanDefinitionStoreException
+	 */
 	protected int doLoadBeanDefinitions(InputSource inputSource, Resource resource)
 			throws BeanDefinitionStoreException {
 
 		try {
 			//获取对XML文件的验证模式，加载XML文件，并得到对应的Document对象
+			//由documentLoader完成的是DefaultDocumentLoader
 			Document doc = doLoadDocument(inputSource, resource);
-			//提取和注册Bean
+			//提取和注册Bean 解析会使用到Spring的Bean配置规则
 			int count = registerBeanDefinitions(doc, resource);
 			if (logger.isDebugEnabled()) {
 				logger.debug("Loaded " + count + " bean definitions from " + resource);
@@ -529,12 +538,12 @@ public class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader {
 	 * @see BeanDefinitionDocumentReader#registerBeanDefinitions
 	 */
 	public int registerBeanDefinitions(Document doc, Resource resource) throws BeanDefinitionStoreException {
-		//使用DefaultBeanDefinitionDocumentReader实例化BeanDefinitionDocumentReader
+		//使用DefaultBeanDefinitionDocumentReader实例化BeanDefinitionDocumentReader 对XML的BeanDefinition进行解析
 		BeanDefinitionDocumentReader documentReader = createBeanDefinitionDocumentReader();
-		//在实例化BeanDefinitonReader的时候会将BeanDefinitionRegistry传入，默认使用继承自DefaultListableBeanFactory的子类
-		//记录统计钱BeanDefinition的加载个数
+		//在实例化BeanDefinitionReader的时候会将BeanDefinitionRegistry传入，默认使用继承自DefaultListableBeanFactory的子类
+		//记录统计前BeanDefinition的加载个数
 		int countBefore = getRegistry().getBeanDefinitionCount();
-		//加载和注册Bean
+		//加载和注册Bean look！具体解析过程
 		documentReader.registerBeanDefinitions(doc, createReaderContext(resource));
 		//记录本次加载的BeanDefinition的个数
 		return getRegistry().getBeanDefinitionCount() - countBefore;
