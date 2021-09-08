@@ -57,6 +57,7 @@ public class FileSystemXmlApplicationContext extends AbstractXmlApplicationConte
 
 	/**
 	 * Create a new FileSystemXmlApplicationContext for bean-style configuration.
+	 *
 	 * @see #setConfigLocation
 	 * @see #setConfigLocations
 	 * @see #afterPropertiesSet()
@@ -66,6 +67,7 @@ public class FileSystemXmlApplicationContext extends AbstractXmlApplicationConte
 
 	/**
 	 * Create a new FileSystemXmlApplicationContext for bean-style configuration.
+	 *
 	 * @param parent the parent context
 	 * @see #setConfigLocation
 	 * @see #setConfigLocations
@@ -81,8 +83,14 @@ public class FileSystemXmlApplicationContext extends AbstractXmlApplicationConte
 	 * @param configLocation file path
 	 * @throws BeansException if context creation failed
 	 */
+	/**
+	 * 这个构造函数的configLocation包含的是BeanDefinition所在的文件路径
+	 *
+	 * @param configLocation
+	 * @throws BeansException
+	 */
 	public FileSystemXmlApplicationContext(String configLocation) throws BeansException {
-		this(new String[] {configLocation}, true, null);
+		this(new String[]{configLocation}, true, null);
 	}
 
 	/**
@@ -90,6 +98,12 @@ public class FileSystemXmlApplicationContext extends AbstractXmlApplicationConte
 	 * from the given XML files and automatically refreshing the context.
 	 * @param configLocations array of file paths
 	 * @throws BeansException if context creation failed
+	 */
+	/**
+	 * 这个构造函数允许configLocation包含多个BeanDefinition的文件路径
+	 *
+	 * @param configLocations
+	 * @throws BeansException
 	 */
 	public FileSystemXmlApplicationContext(String... configLocations) throws BeansException {
 		this(configLocations, true, null);
@@ -99,9 +113,17 @@ public class FileSystemXmlApplicationContext extends AbstractXmlApplicationConte
 	 * Create a new FileSystemXmlApplicationContext with the given parent,
 	 * loading the definitions from the given XML files and automatically
 	 * refreshing the context.
+	 *
 	 * @param configLocations array of file paths
-	 * @param parent the parent context
+	 * @param parent          the parent context
 	 * @throws BeansException if context creation failed
+	 */
+	/**
+	 * 这个构造函数在允许configLocation包含多个BeanDefinition的文件路径的同时，还允许指定自己的双亲IOC容器
+	 *
+	 * @param configLocations
+	 * @param parent
+	 * @throws BeansException
 	 */
 	public FileSystemXmlApplicationContext(String[] configLocations, ApplicationContext parent) throws BeansException {
 		this(configLocations, true, parent);
@@ -110,10 +132,11 @@ public class FileSystemXmlApplicationContext extends AbstractXmlApplicationConte
 	/**
 	 * Create a new FileSystemXmlApplicationContext, loading the definitions
 	 * from the given XML files.
+	 *
 	 * @param configLocations array of file paths
-	 * @param refresh whether to automatically refresh the context,
-	 * loading all bean definitions and creating all singletons.
-	 * Alternatively, call refresh manually after further configuring the context.
+	 * @param refresh         whether to automatically refresh the context,
+	 *                        loading all bean definitions and creating all singletons.
+	 *                        Alternatively, call refresh manually after further configuring the context.
 	 * @throws BeansException if context creation failed
 	 * @see #refresh()
 	 */
@@ -124,13 +147,22 @@ public class FileSystemXmlApplicationContext extends AbstractXmlApplicationConte
 	/**
 	 * Create a new FileSystemXmlApplicationContext with the given parent,
 	 * loading the definitions from the given XML files.
+	 *
 	 * @param configLocations array of file paths
-	 * @param refresh whether to automatically refresh the context,
-	 * loading all bean definitions and creating all singletons.
-	 * Alternatively, call refresh manually after further configuring the context.
-	 * @param parent the parent context
+	 * @param refresh         whether to automatically refresh the context,
+	 *                        loading all bean definitions and creating all singletons.
+	 *                        Alternatively, call refresh manually after further configuring the context.
+	 * @param parent          the parent context
 	 * @throws BeansException if context creation failed
 	 * @see #refresh()
+	 */
+	/**
+	 * 在对象的的初始化过程中，调用refresh函数载入BeanDefinition，这个refresh启动了BeanDefinition的载入过程
+	 *
+	 * @param configLocations
+	 * @param refresh
+	 * @param parent
+	 * @throws BeansException
 	 */
 	public FileSystemXmlApplicationContext(
 			String[] configLocations, boolean refresh, @Nullable ApplicationContext parent)
@@ -149,9 +181,17 @@ public class FileSystemXmlApplicationContext extends AbstractXmlApplicationConte
 	 * <p>Note: Even if a given path starts with a slash, it will get
 	 * interpreted as relative to the current VM working directory.
 	 * This is consistent with the semantics in a Servlet container.
+	 *
 	 * @param path path to the resource
 	 * @return the Resource handle
 	 * @see org.springframework.web.context.support.XmlWebApplicationContext#getResourceByPath
+	 */
+	/**
+	 * 这个应用于文件系统中的Resource的实现，通过构造一个FileSystemResource来得到一个在文件系统中定位的BeanDefinition
+	 * 本方法在BeanDefinitionReader的loadBeanDefinition中被调用的loadBeanDefinition采用了模板方法，具体实现由子类完成
+	 *
+	 * @param path the path to the resource
+	 * @return
 	 */
 	@Override
 	protected Resource getResourceByPath(String path) {
