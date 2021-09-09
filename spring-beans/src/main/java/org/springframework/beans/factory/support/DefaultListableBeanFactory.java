@@ -177,6 +177,7 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 
 	/**
 	 * Map of bean definition objects, keyed by bean name.
+	 * IOC容器注册BeanDefinition数据 注册的过程是在BeanDefinition载入完成之后
 	 */
 	private final Map<String, BeanDefinition> beanDefinitionMap = new ConcurrentHashMap<>(256);
 
@@ -925,7 +926,8 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 	//---------------------------------------------------------------------
 
 	/**
-	 * 注册bean
+	 * 注册bean 完成了BeanDefinition的注册，就完成了IOC容器的初始化过程，此时，在使用IOC容器的DefaultListableBeanFactory中就已经建立了整个Bean的配置信息，
+	 * 这些BeanDefinition可以被容器使用了，他们都在beanDefinitionMap里被检索 使用，容器就是对这些信息进行处理和维护，这些BeanDefinition是容器建立依赖翻转的基础
 	 * 1. 对于AbstractBeanDefinition的校验 ，针对AbstractBeanDefinition的methodOverrides属性
 	 * 2. 对beanName已经注册的情况处理，如果设置了不允许bean的覆盖，则需要抛出异常，否则直接覆盖
 	 * 3. 加入map缓存

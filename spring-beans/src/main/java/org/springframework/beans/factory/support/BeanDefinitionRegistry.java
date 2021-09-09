@@ -64,6 +64,13 @@ public interface BeanDefinitionRegistry extends AliasRegistry {
 	 * @see RootBeanDefinition
 	 * @see ChildBeanDefinition
 	 */
+	/**
+	 * 注册BeanDefinition
+	 *
+	 * @param beanName
+	 * @param beanDefinition
+	 * @throws BeanDefinitionStoreException
+	 */
 	void registerBeanDefinition(String beanName, BeanDefinition beanDefinition)
 			throws BeanDefinitionStoreException;
 
@@ -72,6 +79,12 @@ public interface BeanDefinitionRegistry extends AliasRegistry {
 	 *
 	 * @param beanName the name of the bean instance to register
 	 * @throws NoSuchBeanDefinitionException if there is no such bean definition
+	 */
+	/**
+	 * * 注册BeanDefinition
+	 *
+	 * @param beanName
+	 * @throws NoSuchBeanDefinitionException
 	 */
 	void removeBeanDefinition(String beanName) throws NoSuchBeanDefinitionException;
 
