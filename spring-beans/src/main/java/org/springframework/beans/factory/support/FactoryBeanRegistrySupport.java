@@ -158,6 +158,14 @@ public abstract class FactoryBeanRegistrySupport extends DefaultSingletonBeanReg
 	 * @throws BeanCreationException if FactoryBean object creation failed
 	 * @see org.springframework.beans.factory.FactoryBean#getObject()
 	 */
+	/**
+	 * 这里返回的已经是作为工厂的FactoryBean生产的产品，而不是FactoryBean本身，这种FactoryBean的机制可以给我们提供一个很好地封装机制，比如Proxy，RMI，JNDI等。
+	 *
+	 * @param factory
+	 * @param beanName
+	 * @return
+	 * @throws BeanCreationException
+	 */
 	private Object doGetObjectFromFactoryBean(FactoryBean<?> factory, String beanName) throws BeanCreationException {
 		Object object;
 		try {
@@ -165,6 +173,7 @@ public abstract class FactoryBeanRegistrySupport extends DefaultSingletonBeanReg
 			if (System.getSecurityManager() != null) {
 				AccessControlContext acc = getAccessControlContext();
 				try {
+					//这里调用factory的getObject方法来从FactoryBean中得到Bean
 					object = AccessController.doPrivileged((PrivilegedExceptionAction<Object>) factory::getObject, acc);
 				} catch (PrivilegedActionException pae) {
 					throw pae.getException();

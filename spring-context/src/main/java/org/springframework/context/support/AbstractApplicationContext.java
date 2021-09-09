@@ -596,7 +596,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 				//在所有注册的bean中查找Listener bean 注册到消息广播器中
 				registerListeners();
 
-				//实例化剩下的单实例（非惰性的）所有non-lazy-init单件
+				//实例化剩下的单实例（非惰性的）所有non-lazy-init单件  预实例化
 				finishBeanFactoryInitialization(beanFactory);
 
 				// 发布容器事件，结束Refresh过程
@@ -693,6 +693,11 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 	 * such as the context's ClassLoader and post-processors.
 	 *
 	 * @param beanFactory the BeanFactory to configure
+	 */
+	/**
+	 * 在使用应用上下文时需要做一些准备工作，在这个方法中，为容器配置了ClassLoader,PropertyEditor和BeanPostProcessor等，从而为容器的启动做好了必要准备工作
+	 *
+	 * @param beanFactory
 	 */
 	protected void prepareBeanFactory(ConfigurableListableBeanFactory beanFactory) {
 		// 设置beanFactory的classLoader为当前context的classLoader
@@ -900,6 +905,9 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 
 	/**
 	 * 初始化非延迟加载单例
+	 * 在本方法中封装了对lazy-init属性的处理，实际的处理在DefaultListableBeanFactory这个基本容器的preInstantiateSingletons方法中完成的。
+	 * 该方法对单件Bean完成预实例化，这个预实例化的完成巧妙底委托给容器来实现，如果需要预实例化，那么就直接在这里采用getBean去出发依赖注入。
+	 * 与正常依赖注入的触发相比，只有触发的事件和场合不同，在这里，依赖注入发生在容器执行refresh的过程中，也就是发生在IOC容器初始化的过程中，而不像一半的依赖注入一样发生在IOC容器初始化完成之后，第一次向容器执行getBean的时候
 	 */
 	protected void finishBeanFactoryInitialization(ConfigurableListableBeanFactory beanFactory) {
 		// Initialize conversion service for this context.

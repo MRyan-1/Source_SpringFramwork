@@ -9,7 +9,6 @@ import org.springframework.beans.factory.xml.XmlBeanFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 import org.springframework.core.io.ClassPathResource;
-import org.springframework.expression.spel.spr10210.infra.C;
 
 /**
  * @description： BeanFactoryTest
@@ -21,7 +20,9 @@ public class BeanFactoryTest {
 
 	@Test
 	public void TEST_BEAN_FACTORY_SIMPLE_LOAD() {
+		//BeanDefinition资源定位，解析，注册到IOC容器
 		BeanFactory beanFactory = new XmlBeanFactory(new ClassPathResource("test.xml"));
+		//IOC容器的依赖注入 从AbstractBeanFactory入手分析
 		MyTestBean myTestBean = beanFactory.getBean("myTestBean", MyTestBean.class);
 		System.out.println(myTestBean.getTestStr());
 	}
@@ -47,6 +48,8 @@ public class BeanFactoryTest {
 	@Test
 	public void TEST_APPLICATION_CONTEXT_SIMPLE_LOAD() {
 		ApplicationContext context = new ClassPathXmlApplicationContext(new String[]{"test.xml"});
+		//IOC容器对Bean的依赖注入 注：依赖注入的过程是用户第一次向IOC容器索要bean时触发。
+		//当然也可以在BeanDefinition中通过控制lazy-init属性让容器完成Bean的预初始化，预初始化也是一个完成依赖注入的过程
 		MyTestBean myTestBean = (MyTestBean) context.getBean("myTestBean");
 		System.out.println(myTestBean.getTestStr());
 	}

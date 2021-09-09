@@ -177,6 +177,7 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 
 	/**
 	 * Map of bean definition objects, keyed by bean name.
+	 * IOC容器注册BeanDefinition数据 注册的过程是在BeanDefinition载入完成之后
 	 */
 	private final Map<String, BeanDefinition> beanDefinitionMap = new ConcurrentHashMap<>(256);
 
@@ -875,7 +876,10 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 		// While this may not be part of the regular factory bootstrap, it does otherwise work fine.
 		List<String> beanNames = new ArrayList<>(this.beanDefinitionNames);
 
-		// Trigger initialization of all non-lazy singleton beans...
+		//在这里开始getBean，也就是去触发Bean的依赖注入
+		//这个getBean和前面分析的出发依赖注入的流程都是一样的，只不过发生的地方不同
+		//如果不设置lazy-init属性，你那么这个依赖注入是发生在容器初始化结束之后，第一次向容器发出getBean时，如果设置了lazy-init属性，那么依赖注入发生在容器初始化的过程中，会对BeanDefinitionMap中所有的Bean进行依赖注入
+		//这样在初始化过程结束之后，容器执行getBean得到的就是已经准备好的Bean 不需要进行依赖注入
 		for (String beanName : beanNames) {
 			RootBeanDefinition bd = getMergedLocalBeanDefinition(beanName);
 			if (!bd.isAbstract() && bd.isSingleton() && !bd.isLazyInit()) {
@@ -925,7 +929,8 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 	//---------------------------------------------------------------------
 
 	/**
-	 * 注册bean
+	 * 注册bean 完成了BeanDefinition的注册，就完成了IOC容器的初始化过程，此时，在使用IOC容器的DefaultListableBeanFactory中就已经建立了整个Bean的配置信息，
+	 * 这些BeanDefinition可以被容器使用了，他们都在beanDefinitionMap里被检索 使用，容器就是对这些信息进行处理和维护，这些BeanDefinition是容器建立依赖翻转的基础
 	 * 1. 对于AbstractBeanDefinition的校验 ，针对AbstractBeanDefinition的methodOverrides属性
 	 * 2. 对beanName已经注册的情况处理，如果设置了不允许bean的覆盖，则需要抛出异常，否则直接覆盖
 	 * 3. 加入map缓存

@@ -61,18 +61,17 @@ public class SimpleInstantiationStrategy implements InstantiationStrategy {
 	 * Spring而做了大量的工作。程序中,首先判断如果beanDefinition.getMethodOverrides0为空也就是用户没有使用replace或者lookup的配置方法,那么直接使用反射的方式,
 	 * 简单快捷,但是如果使用了这两个特性,在直接使用反射的方式创建实例就不妥了,因为需要将这两个配置提供的功能切入进去,所以就必须要使用动态代理的方式将包含两个特性所对应的逻辑的拦截增强器设置进去
 	 * 这样才可以保证在调用方法的时候会被相应的拦截器增强,返回值为包含拦截器的代理实例
-	 * @param bd the bean definition
+	 *
+	 * @param bd       the bean definition
 	 * @param beanName the name of the bean when it is created in this context.
-	 * The name can be {@code null} if we are autowiring a bean which doesn't
-	 * belong to the factory.
-	 * @param owner the owning BeanFactory
+	 *                 The name can be {@code null} if we are autowiring a bean which doesn't
+	 *                 belong to the factory.
+	 * @param owner    the owning BeanFactory
 	 * @return
 	 */
 	@Override
 	public Object instantiate(RootBeanDefinition bd, @Nullable String beanName, BeanFactory owner) {
-		//如果有需要覆盖或者动态替换的方法则当然需要使用cgLib进行动态代理,因为可以在创建代理的同时
-		// 将动态方法织入类中
-		//但是如果没有需要动态改变得方法,为了方便直接反射就可以了
+		//这里取得指定的构造器或者生成对象的工厂方法来对Bean进行实例化
 		if (!bd.hasMethodOverrides()) {
 			Constructor<?> constructorToUse;
 			synchronized (bd.constructorArgumentLock) {
@@ -95,9 +94,11 @@ public class SimpleInstantiationStrategy implements InstantiationStrategy {
 					}
 				}
 			}
+			//通过BeanUtils进行实例化，BeanUtils的实例化通过Constructor来实例化Bean，在BeanUtils中可以看到具体的调用
+			//ctor.newInstance(args)
 			return BeanUtils.instantiateClass(constructorToUse);
 		} else {
-			// Must generate CGLIB subclass.
+			// 使用CGLIB来实例化对象
 			return instantiateWithMethodInjection(bd, beanName, owner);
 		}
 	}
