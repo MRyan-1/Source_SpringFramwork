@@ -1726,6 +1726,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 				return beanInstance;
 			}
 			//如果指定的name是工.厂相关(以&为前缀)且 beanInstance又不是FactoryBean类型则验证不通过
+			//换句话说如果不是对FactoryBean的调用，那么结束处理
 			if (!(beanInstance instanceof FactoryBean)) {
 				throw new BeanIsNotAFactoryException(beanName, beanInstance.getClass());
 			}

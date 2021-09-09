@@ -1425,15 +1425,16 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		//这里取得BeanDefinition中设置的property值，这些property来自对BeanDefinition的解析
 		PropertyValues pvs = (mbd.hasPropertyValues() ? mbd.getPropertyValues() : null);
 
+		//容器的自动依赖装配功能，对于autowireByName来说 首先需要得到当前bean的属性名，这些属性名已经在BeanWrapper和BeanDefinition中封装好了，然后是这一系列属性名进行匹配的过程。
+		//在匹配的过程中，因为已经有了属性的名字，所以可以直接使用属性名作为Bean的名字向容器索要Bean，这个getBean会出发当前Bean的依赖Bean的依赖注入，从而得到属性对应的依赖Bean
+		//在执行完这个getBean后，把这个依赖Bean注入到当前的Bean的属性中去，这样就完成了通过这个依赖属性名自动完成依赖注入的过程，autowireByType的实现和autowireByName类似
 		int resolvedAutowireMode = mbd.getResolvedAutowireMode();
 		if (resolvedAutowireMode == AUTOWIRE_BY_NAME || resolvedAutowireMode == AUTOWIRE_BY_TYPE) {
 			MutablePropertyValues newPvs = new MutablePropertyValues(pvs);
-			// Add property values based on autowire by name if applicable.
 			//根据名称自动注入
 			if (resolvedAutowireMode == AUTOWIRE_BY_NAME) {
 				autowireByName(beanName, mbd, bw, newPvs);
 			}
-			// Add property values based on autowire by type if applicable.
 			if (resolvedAutowireMode == AUTOWIRE_BY_TYPE) {
 				//根据类型自动注入
 				autowireByType(beanName, mbd, bw, newPvs);
@@ -1472,7 +1473,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 			if (filteredPds == null) {
 				filteredPds = filterPropertyDescriptorsForDependencyCheck(bw, mbd.allowCaching);
 			}
-			//依赖检查，对应depends-on属性
+			//Bean的依赖检查，对应depends-on属性
 			checkDependencies(beanName, mbd, filteredPds, pvs);
 		}
 
@@ -1499,6 +1500,8 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		for (String propertyName : propertyNames) {
 			//递归初始化相关bean
 			if (containsBean(propertyName)) {
+				//使用取得的当前Bean的属性名作为Bean的名字，向IOC容器索要Bean
+				//然后把从容器得到的Bean设置到当前Bean的属性中去
 				Object bean = getBean(propertyName);
 				pvs.add(propertyName, bean);
 				//注册依赖
@@ -1664,6 +1667,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 	 * @param pvs      the property values to be applied to the bean
 	 * @see #isExcludedFromDependencyCheck(java.beans.PropertyDescriptor)
 	 */
+	//Bean的依赖检查
 	protected void checkDependencies(
 			String beanName, AbstractBeanDefinition mbd, PropertyDescriptor[] pds, @Nullable PropertyValues pvs)
 			throws UnsatisfiedDependencyException {
@@ -1819,6 +1823,14 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 	 * @see #invokeInitMethods
 	 * @see #applyBeanPostProcessorsAfterInitialization
 	 */
+	/**
+	 * Bean的初始化方法调用
+	 *
+	 * @param beanName
+	 * @param bean
+	 * @param mbd
+	 * @return
+	 */
 	protected Object initializeBean(String beanName, Object bean, @Nullable RootBeanDefinition mbd) {
 		if (System.getSecurityManager() != null) {
 			AccessController.doPrivileged((PrivilegedAction<Object>) () -> {
@@ -1828,19 +1840,22 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		} else {
 			invokeAwareMethods(beanName, bean);
 		}
-
+		//这里是对后置处理器BeanPostProcessors的postProcessBeforeInstantiation的回调方法调用
 		Object wrappedBean = bean;
 		if (mbd == null || !mbd.isSynthetic()) {
 			wrappedBean = applyBeanPostProcessorsBeforeInitialization(wrappedBean, beanName);
 		}
 
 		try {
+			//在调用Bean的初始化方法之前，会调用一系列的aware接口实现，把相关的BeanName,BeanClassLoader,以及BeanFactory注入到Bean中，接着会看到对invokeInitMethods的调用
+			//这时还会看到启动afterPropertiesSet的过程，当然，这需要Bean实现InitializingBean接口，对应的初始化处理可以再InitializingBean接口的afterPropertiesSet方法中实现
 			invokeInitMethods(beanName, wrappedBean, mbd);
 		} catch (Throwable ex) {
 			throw new BeanCreationException(
 					(mbd != null ? mbd.getResourceDescription() : null),
 					beanName, "Invocation of init method failed", ex);
 		}
+		//这是对后置处理器BeanPostProcessors的postProcessAfterInitialization的回调方法的调用
 		if (mbd == null || !mbd.isSynthetic()) {
 			wrappedBean = applyBeanPostProcessorsAfterInitialization(wrappedBean, beanName);
 		}
@@ -1905,6 +1920,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 			if (StringUtils.hasLength(initMethodName) &&
 					!(isInitializingBean && "afterPropertiesSet".equals(initMethodName)) &&
 					!mbd.isExternallyManagedInitMethod(initMethodName)) {
+				//判断Bean是否配置有initMethod，如果有那么通过invokeCustom-initMethod方法来直接调用，最终完成Bean的初始化
 				invokeCustomInitMethod(beanName, bean, mbd);
 			}
 		}

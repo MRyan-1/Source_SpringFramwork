@@ -876,7 +876,10 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 		// While this may not be part of the regular factory bootstrap, it does otherwise work fine.
 		List<String> beanNames = new ArrayList<>(this.beanDefinitionNames);
 
-		// Trigger initialization of all non-lazy singleton beans...
+		//在这里开始getBean，也就是去触发Bean的依赖注入
+		//这个getBean和前面分析的出发依赖注入的流程都是一样的，只不过发生的地方不同
+		//如果不设置lazy-init属性，你那么这个依赖注入是发生在容器初始化结束之后，第一次向容器发出getBean时，如果设置了lazy-init属性，那么依赖注入发生在容器初始化的过程中，会对BeanDefinitionMap中所有的Bean进行依赖注入
+		//这样在初始化过程结束之后，容器执行getBean得到的就是已经准备好的Bean 不需要进行依赖注入
 		for (String beanName : beanNames) {
 			RootBeanDefinition bd = getMergedLocalBeanDefinition(beanName);
 			if (!bd.isAbstract() && bd.isSingleton() && !bd.isLazyInit()) {
