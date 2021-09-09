@@ -115,7 +115,7 @@ import org.springframework.lang.Nullable;
  */
 
 /**
- * 定义getBean（获取bean）和bean的其他属性
+ * 定义getBean（获取bean）触发依赖注入过程的方法 和bean的其他属性
  */
 public interface BeanFactory {
 
@@ -141,6 +141,14 @@ public interface BeanFactory {
 	 * @throws NoSuchBeanDefinitionException if there is no bean with the specified name
 	 * @throws BeansException                if the bean could not be obtained
 	 */
+	/**
+	 * IOC容器对Bean的依赖注入 注：依赖注入的过程是用户第一次向IOC容器索要bean时触发。
+	 * 当然也可以在BeanDefinition中通过控制lazy-init属性让容器完成Bean的预初始化，预初始化也是一个完成依赖注入的过程
+	 *
+	 * @param name
+	 * @return
+	 * @throws BeansException
+	 */
 	Object getBean(String name) throws BeansException;
 
 	/**
@@ -158,6 +166,16 @@ public interface BeanFactory {
 	 * @throws NoSuchBeanDefinitionException  if there is no such bean definition
 	 * @throws BeanNotOfRequiredTypeException if the bean is not of the required type
 	 * @throws BeansException                 if the bean could not be created
+	 */
+	/**
+	 * IOC容器对Bean的依赖注入 注：依赖注入的过程是用户第一次向IOC容器索要bean时触发。
+	 * 当然也可以在BeanDefinition中通过控制lazy-init属性让容器完成Bean的预初始化，预初始化也是一个完成依赖注入的过程
+	 *
+	 * @param name
+	 * @param requiredType
+	 * @param <T>
+	 * @return
+	 * @throws BeansException
 	 */
 	<T> T getBean(String name, Class<T> requiredType) throws BeansException;
 

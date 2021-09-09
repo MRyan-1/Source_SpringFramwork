@@ -235,6 +235,14 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 	// Implementation of BeanFactory interface
 	//---------------------------------------------------------------------
 
+	/**
+	 * 这里是对BeanFactory接口的实现，比如getBean方法
+	 * getBean实际是调用doGetBean来实现
+	 *
+	 * @param name
+	 * @return
+	 * @throws BeansException
+	 */
 	@Override
 	public Object getBean(String name) throws BeansException {
 		return doGetBean(name, null, null, false);
@@ -279,7 +287,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 	 * @throws BeansException if the bean could not be created
 	 */
 	/**
-	 * 加载bean流程:
+	 * 加载bean流程 触发依赖注入的地方:
 	 * 1. 转换对应beanName （传入的参数name，不一定是beanName 有可能是别名，或者FactoryBean，所有需要解析）
 	 * * 1）去除FactoryBean的修饰符 也就是如果name="&aa" name会首先去除&使name="aa"
 	 * * 2) 取指定alias所表示的最终beanName 例如别名A指向成为B的bean 则返回B；若别名A指向别名B，别名B又指向名称为C的bean则返回C
@@ -314,7 +322,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 
 		//检查缓存中或者实例工厂中是否有对应的实例，为什么首先会使用这段代码呢？
 		//因为在创建单例bean的时候会存在依赖注入的情况,而在创建依赖的时候为了避免循环依赖,Spring创建bean的原则是不等bean创建完成就会将创建bean的ObjectFactory提早曝光。也就是将ObjectFactory加人到缓存中,一且下个bean创建时候需要依赖上个bean则直接使用ObjectFactory
-		//直接尝试从缓存获取或者singletonFactories中的ObjectFactory中获取
+		//直接尝试从缓存获取或者singletonFactories中的ObjectFactory中获取，保证不会重复创建
 		Object sharedInstance = getSingleton(beanName);
 		if (sharedInstance != null && args == null) {
 			if (logger.isTraceEnabled()) {
@@ -334,7 +342,8 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 				throw new BeanCurrentlyInCreationException(beanName);
 			}
 
-			// Check if bean definition exists in this factory.
+			// 这里对IOC容器中的BeanDefinition是否存在进行检查，检查是否能在当前的BeanFactory中取得需要的Bean
+			//如果在当前的工厂中取不到，则到双亲BeanFactory中去取，如果当前的双亲工厂取不到，那就顺着双亲BeanFactory链一直向上查找
 			BeanFactory parentBeanFactory = getParentBeanFactory();
 			//监测如果当前加载的XML配置文件中不包含beanName所对应的配置，就只能到parentBeanFactory去尝试下，然后再递归的调用getBean方法
 			if (parentBeanFactory != null && !containsBeanDefinition(beanName)) {
@@ -364,7 +373,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 				RootBeanDefinition mbd = getMergedLocalBeanDefinition(beanName);
 				checkMergedBeanDefinition(mbd, beanName, args);
 
-				// Guarantee initialization of beans that the current bean depends on.
+				// 获取当前Bean的所有依赖Bean 这样会触发getBean的递归调用，直到取到一个没有任何依赖的Bean为止
 				String[] dependsOn = mbd.getDependsOn();
 				//如果存在依赖则需要递归实例化依赖的bean
 				if (dependsOn != null) {
@@ -385,7 +394,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 				}
 
 				//实例化依赖的bean后便可以实例化mbd本身了
-				// Create bean instance.
+				//这里通过调用createBean方法创建Singleton bean实例，这里有一个回调函数getObject，会在getSingleton中调用ObjectFactory的createBean33
 				if (mbd.isSingleton()) {
 					sharedInstance = getSingleton(beanName, () -> {
 						try {
@@ -402,7 +411,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 					//look!
 					bean = getObjectForBeanInstance(sharedInstance, name, beanName, mbd);
 				} else if (mbd.isPrototype()) {
-					//prototype模式的创建（new）
+					//创建prototype bean的地方
 					Object prototypeInstance = null;
 					try {
 						beforePrototypeCreation(beanName);
@@ -447,7 +456,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 		}
 
 		//程序到这里返回bean后已经基本结東了,通常对该方法的调用参数requiredType是为空的, 但是可能会存在这样的情况,返回的bean其实是个String,但是requiredType却传人Integer类型,那么这时候本步骤就会起作用了,它的功能是将返回的bean转换为requiredType所指定的类型。
-		// 检查需要的类型是否符合bean的实际类型
+		// 检查需要的类型是否符合bean的实际类型，如果没有问题，就返回这个被创建的Bean
 		if (requiredType != null && !requiredType.isInstance(bean)) {
 			try {
 				//如果指定的需求类型不为空需要进行类型转换，否则直接强制转换

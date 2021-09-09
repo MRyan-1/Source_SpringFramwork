@@ -186,7 +186,7 @@ public class DefaultBeanDefinitionDocumentReader implements BeanDefinitionDocume
 				if (node instanceof Element) {
 					Element ele = (Element) node;
 					if (delegate.isDefaultNamespace(ele)) {
-						//对bean的处理
+						//对bean的处理 注册工作也在本方法内部实现
 						parseDefaultElement(ele, delegate);
 					} else {
 						//对bean的处理
@@ -201,7 +201,7 @@ public class DefaultBeanDefinitionDocumentReader implements BeanDefinitionDocume
 	}
 
 	/**
-	 * 默认标签解析
+	 * 默认标签解析 注册工作也在本方法内部实现
 	 *
 	 * @param ele
 	 * @param delegate
@@ -214,7 +214,7 @@ public class DefaultBeanDefinitionDocumentReader implements BeanDefinitionDocume
 			//对alias标签的处理
 			processAliasRegistration(ele);
 		} else if (delegate.nodeNameEquals(ele, BEAN_ELEMENT)) {
-			//对bean标签的处理
+			//对bean标签的处理 注册工作也在本方法内部实现 look!
 			processBeanDefinition(ele, delegate);
 		} else if (delegate.nodeNameEquals(ele, NESTED_BEANS_ELEMENT)) {
 			//对beans标签的处理
@@ -348,7 +348,7 @@ public class DefaultBeanDefinitionDocumentReader implements BeanDefinitionDocume
 			//look! 适用场景<bean id="test" class="test.MyClass">  <mybean:user username="MRyan"/>    </bean> 使用了自定义配置
 			bdHolder = delegate.decorateBeanDefinitionIfRequired(ele, bdHolder);
 			try {
-				//解析完成之后，需要对解析后的bdHolder进行注册，同样，注册操作委托给了Bean-DefinitionReaderUtils的registerBeanDefinition方法
+				//解析完成之后，需要对解析后的bdHolder进行注册，同样，注册操作委托给了BeanDefinitionReaderUtils的registerBeanDefinition方法
 				BeanDefinitionReaderUtils.registerBeanDefinition(bdHolder, getReaderContext().getRegistry());
 			} catch (BeanDefinitionStoreException ex) {
 				getReaderContext().error("Failed to register bean definition with name '" +
