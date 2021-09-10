@@ -30,16 +30,23 @@ package org.springframework.aop;
  * @see org.springframework.aop.support.ClassFilters
  * @see org.springframework.aop.support.MethodMatchers
  */
+
+/**
+ * Pointcut（切点）决定Advice通知应该作用与哪个连接点，也就是说通过Pointcut来定义需要增强的方法的集合，这些集合的选取可以按照一定的规则来完成。
+ * 在这种情况下，Pointcut通常意味着标识方法，例如，这些需要增强的方法可以由某个正则表达式进行标识，或根据某个方法名进行匹配等
+ */
 public interface Pointcut {
 
 	/**
 	 * Return the ClassFilter for this pointcut.
+	 *
 	 * @return the ClassFilter (never {@code null})
 	 */
 	ClassFilter getClassFilter();
 
 	/**
 	 * Return the MethodMatcher for this pointcut.
+	 *
 	 * @return the MethodMatcher (never {@code null})
 	 */
 	MethodMatcher getMethodMatcher();

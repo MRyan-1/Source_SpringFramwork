@@ -23,6 +23,11 @@ package org.aopalliance.aop;
  * @author Rod Johnson
  * @version $Id: Advice.java,v 1.1 2004/03/19 17:02:16 johnsonr Exp $
  */
+
+/**
+ * Advice（通知）定义在连接点做什么，为切面增强提供织入接口。
+ * 在Spring AOP中，它主要描述Spring AOP围绕方法调用而注入的切面行为
+ */
 public interface Advice {
 
 }

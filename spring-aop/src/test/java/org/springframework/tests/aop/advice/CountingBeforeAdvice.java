@@ -28,8 +28,17 @@ import org.springframework.aop.MethodBeforeAdvice;
 @SuppressWarnings("serial")
 public class CountingBeforeAdvice extends MethodCounter implements MethodBeforeAdvice {
 
+	/**
+	 * 目标方法调用前实现切面增强
+	 *
+	 * @param m
+	 * @param args   这个对象数组中包含目标方法的输入参数
+	 * @param target
+	 * @throws Throwable
+	 */
 	@Override
 	public void before(Method m, Object[] args, Object target) throws Throwable {
+		//调用方法名统计
 		count(m);
 	}
 

@@ -40,6 +40,13 @@ public interface MethodBeforeAdvice extends BeforeAdvice {
 	 * allowed by the method signature. Otherwise the exception
 	 * will be wrapped as a runtime exception.
 	 */
+	/**
+	 *
+	 * @param method 目标方法的代理对象
+	 * @param args 这个对象数组中包含目标方法的输入参数
+	 * @param target
+	 * @throws Throwable
+	 */
 	void before(Method method, Object[] args, @Nullable Object target) throws Throwable;
 
 }

@@ -33,19 +33,28 @@ import org.aopalliance.aop.Advice;
  * @author Rod Johnson
  * @author Juergen Hoeller
  */
+
+/**
+ * 完成对目标方法的切面增强设计（Advice）和关注点的设计（Pointcut）以后，需要一个对象把它们结合起来，完成这个作用的就是Advisor（通知器）
+ * 通过Advisor可以定义应该使用哪个通知并在那个关注点使用它，也就是说通过Advisor把Advice和Pointcut结合起来
+ * 以DefaultPointcutAdvisor为例分析
+ */
 public interface Advisor {
 
 	/**
 	 * Common placeholder for an empty {@code Advice} to be returned from
 	 * {@link #getAdvice()} if no proper advice has been configured (yet).
+	 *
 	 * @since 5.0
 	 */
-	Advice EMPTY_ADVICE = new Advice() {};
+	Advice EMPTY_ADVICE = new Advice() {
+	};
 
 
 	/**
 	 * Return the advice part of this aspect. An advice may be an
 	 * interceptor, a before advice, a throws advice, etc.
+	 *
 	 * @return the advice that should apply if the pointcut matches
 	 * @see org.aopalliance.intercept.MethodInterceptor
 	 * @see BeforeAdvice
@@ -62,6 +71,7 @@ public interface Advisor {
 	 * Typical Advisor implementations always return {@code true}.
 	 * Use singleton/prototype bean definitions or appropriate programmatic
 	 * proxy creation to ensure that Advisors have the correct lifecycle model.
+	 *
 	 * @return whether this advice is associated with a particular target instance
 	 */
 	boolean isPerInstance();

@@ -41,6 +41,16 @@ public interface AfterReturningAdvice extends AfterAdvice {
 	 * allowed by the method signature. Otherwise the exception
 	 * will be wrapped as a runtime exception.
 	 */
+	/**
+	 * 回调函数，AOP应用需要在这个接口实现中提供切面增强的具体设计
+	 * 在这个Advice通知被正确配置以后，在目标方法调用结束并成功返回的时候，接口会被Spring AOP回调
+	 *
+	 * @param returnValue
+	 * @param method
+	 * @param args
+	 * @param target
+	 * @throws Throwable
+	 */
 	void afterReturning(@Nullable Object returnValue, Method method, Object[] args, @Nullable Object target) throws Throwable;
 
 }
