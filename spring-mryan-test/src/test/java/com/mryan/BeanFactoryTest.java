@@ -54,4 +54,12 @@ public class BeanFactoryTest {
 		System.out.println(myTestBean.getTestStr());
 	}
 
+	@Test
+	public void TEST_FACTORY_BEAN_SIMPLE_LOAD() {
+		ApplicationContext context = new ClassPathXmlApplicationContext("test.xml");
+		Object userBean = context.getBean("userFactoryBean");
+		System.out.println("User:" + userBean);
+	/*	Object userFactoryBean = context.getBean("&userFactoryBean");
+		System.out.println("UserFactoryBean:" + userFactoryBean);*/
+	}
 }

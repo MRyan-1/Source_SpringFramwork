@@ -6,4 +6,7 @@
 
 	<bean id="myTestBean" class="com.mryan.bean.MyTestBean"/>
 
+	<bean id="userFactoryBean" class="com.mryan.bean.UserFactoryBean" init-method="initMethod">
+		<property name="userInfo" value="MRyan,21"/>
+	</bean>
 </beans>
