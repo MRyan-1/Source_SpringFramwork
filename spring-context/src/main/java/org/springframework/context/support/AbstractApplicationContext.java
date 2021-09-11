@@ -581,7 +581,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 				//调用BeanFactory的后处理器，这些后处理器是Bean定义中向容器注册的
 				invokeBeanFactoryPostProcessors(beanFactory);
 
-				//注册拦截Bean创建的Bean后处理器，这里知识注册，真正调用的时候在bean的创建过程getBean的时候
+				//注册拦截Bean创建的Bean后处理器，这里只是注册，真正调用的时候在bean的创建过程getBean的时候
 				registerBeanPostProcessors(beanFactory);
 
 				//为上下文初始化Message源，不同语言的消息体，国际化处理
