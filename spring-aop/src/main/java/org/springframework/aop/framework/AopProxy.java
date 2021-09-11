@@ -35,6 +35,7 @@ public interface AopProxy {
 	 * Create a new proxy object.
 	 * <p>Uses the AopProxy's default class loader (if necessary for proxy creation):
 	 * usually, the thread context class loader.
+	 *
 	 * @return the new proxy object (never {@code null})
 	 * @see Thread#getContextClassLoader()
 	 */
@@ -49,6 +50,12 @@ public interface AopProxy {
 	 * @param classLoader the class loader to create the proxy with
 	 * (or {@code null} for the low-level proxy facility's default)
 	 * @return the new proxy object (never {@code null})
+	 */
+	/**
+	 * 需要指定ClassLoader
+	 *
+	 * @param classLoader
+	 * @return
 	 */
 	Object getProxy(@Nullable ClassLoader classLoader);
 
