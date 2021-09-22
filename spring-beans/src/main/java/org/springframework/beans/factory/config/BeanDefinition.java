@@ -119,17 +119,7 @@ public interface BeanDefinition extends AttributeAccessor, BeanMetadataElement {
 	void setBeanClassName(@Nullable String beanClassName);
 
 	/**
-	 * Return the current bean class name of this bean definition.
-	 * <p>Note that this does not have to be the actual class name used at runtime, in
-	 * case of a child definition overriding/inheriting the class name from its parent.
-	 * Also, this may just be the class that a factory method is called on, or it may
-	 * even be empty in case of a factory bean reference that a method is called on.
-	 * Hence, do <i>not</i> consider this to be the definitive bean type at runtime but
-	 * rather only use it for parsing purposes at the individual bean definition level.
-	 *
-	 * @see #getParentName()
-	 * @see #getFactoryBeanName()
-	 * @see #getFactoryMethodName()
+	 * 设置bean的scope
 	 */
 	@Nullable
 	String getBeanClassName();
@@ -163,23 +153,19 @@ public interface BeanDefinition extends AttributeAccessor, BeanMetadataElement {
 	boolean isLazyInit();
 
 	/**
-	 * Set the names of the beans that this bean depends on being initialized.
-	 * The bean factory will guarantee that these beans get initialized first.
+	 * 设置该Bean依赖的所有Bean，注意这里的依赖不是指属性依赖（@Autowire标记）而是depends-on=""属性设置的值
 	 */
 	void setDependsOn(@Nullable String... dependsOn);
 
 	/**
-	 * Return the bean names that this bean depends on.
+	 * 返回Bean的所有依赖
 	 */
 	@Nullable
 	String[] getDependsOn();
 
 	/**
-	 * Set whether this bean is a candidate for getting autowired into some other bean.
-	 * <p>Note that this flag is designed to only affect type-based autowiring.
-	 * It does not affect explicit references by name, which will get resolved even
-	 * if the specified bean is not marked as an autowire candidate. As a consequence,
-	 * autowiring by name will nevertheless inject a bean if the name matches.
+	 * 设置该Bean是否可以注入到其他Bean中，只对根据类型注入有效，
+	 * 如果根据名称注入，即使这边设置了 false，也是可以的
 	 */
 	void setAutowireCandidate(boolean autowireCandidate);
 
